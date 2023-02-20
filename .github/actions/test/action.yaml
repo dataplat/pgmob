@@ -40,9 +40,9 @@ runs:
     - name: Prepare container
       run: >
         docker build . -t pgmobtest
-        --build-arg PYTHON_VERSION=PYTHON_VERSION
-        --build-arg POSTGRES_VERSION=POSTGRES_VERSION
-        --build-arg POETRY_EXTRAS=POETRY_EXTRAS
+        --build-arg PYTHON_VERSION=${{ inputs.PYTHON_VERSION }}
+        --build-arg POETRY_VERSION=${{ inputs.POETRY_VERSION }}
+        --build-arg POETRY_EXTRAS=${{ inputs.POETRY_EXTRAS }}
       shell: bash
 
     - name: Run tests
