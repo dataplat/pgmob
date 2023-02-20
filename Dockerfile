@@ -11,6 +11,6 @@ RUN poetry config virtualenvs.create false
 COPY ./src ./src/
 COPY poetry.lock .
 COPY pyproject.toml .
-COPY *.md .
+COPY *.md ./
 
 RUN poetry install -E $POETRY_EXTRAS
