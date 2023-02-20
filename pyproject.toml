@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "pgmob"
+version = "0.1.2"
+description = "Postgres Managed Objects - a Postgres database management interface"
+authors = ["Kirill Kravtsov <nvarscar@gmail.com>"]
+packages = [
+    { include = "pgmob", from = "src" },
+]
+include = ["src/pgmob/scripts/*"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/dataplat/pgmob/"
+repository = "https://github.com/dataplat/pgmob"
+documentation = "https://github.com/dataplat/pgmob"
+keywords = ["postgres", "sql", "backup", "restore"]
+
+[tool.poetry.dependencies]
+python = ">=3.7,<4"
+psycopg2-binary = {version = "^2.9.3", optional = true}
+psycopg2 = {version = "^2.9.3", optional = true}
+packaging = "^21.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.1"
+pytest-cov = "^3.0.0"
+pytest-mock = "^3.7.0"
+black = "^22.3.0"
+docker = "^6.0.0"
+mypy = "^0.971"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.extras]
+psycopg2-binary = ["psycopg2-binary"]
+psycopg2 = ["psycopg2"]
+
+[tool.black]
+line-length = 110

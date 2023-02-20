@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "pgmob.docs"
+version = "0.1.0"
+description = "Generates docs for pgmob"
+authors = ["kirill.kravtsov <kirill.kravtsov@everbridge.com>"]
+
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pgmob = {path = "..", extras = ["psycopg2-binary"]}
+sphinx = "^6.1.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
