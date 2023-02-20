@@ -45,8 +45,15 @@ runs:
         --build-arg POETRY_EXTRAS=${{ inputs.POETRY_EXTRAS }}
       shell: bash
 
-    - name: Run tests
-      run: |
-        docker run --rm -i pgmobtest mypy src/pgmob
-        docker run --rm -i --network ${{ inputs.CONTAINER_NETWORK}} -e PGMOB_IMAGE=postgres:${{ inputs.POSTGRES_VERSION }} -e PGMOB_CONTAINER_NETWORK=${{ inputs.CONTAINER_NETWORK}} pgmobtest pytest -vv
+    - name: Run mypy tests
+      run: docker run --rm -i pgmobtest mypy src/pgmob
+      shell: bash
+
+    - name: Run poetry tests
+      run: >
+        docker run --rm -i --network ${{ inputs.CONTAINER_NETWORK}}
+        -e PGMOB_IMAGE=postgres:${{ inputs.POSTGRES_VERSION }}
+        -e PGMOB_CONTAINER_NETWORK=${{ inputs.CONTAINER_NETWORK}}
+        -v /var/run/docker.sock:/var/run/docker.sock
+        pgmobtest pytest -vv
       shell: bash
