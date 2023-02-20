@@ -37,7 +37,7 @@ class TestLargeObjects:
         largeobject.alter()
         assert get_current() == role
         assert largeobject.owner == role
-        psql(f"\lo_unlink {lo_id}")
+        psql(f"\\lo_unlink {lo_id}")
 
     def test_drop(self, large_objects, lo_ids, psql):
         def get_current(oid):

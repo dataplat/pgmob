@@ -274,7 +274,7 @@ def lo_ids_factory(psql, container):
         container.exec_run(["sh", "-c", "echo zoobar > /tmp/zoo.lo"])
         los = []
         for file in ["foo", "zoo"]:
-            los.append(int(psql(f"\lo_import /tmp/{file}.lo", db=db).output.split(" ")[1]))
+            los.append(int(psql(f"\\lo_import /tmp/{file}.lo", db=db).output.split(" ")[1]))
 
         return los
 
