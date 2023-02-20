@@ -39,7 +39,7 @@
         "source=//var/run/docker.sock,target=/var/run/docker.sock,type=bind"
     ],
     // Use 'postCreateCommand' to run commands after the container is created.
-    "postCreateCommand": "cd src && poetry install -E psycopg2",
+    "postCreateCommand": "poetry install -E psycopg2",
     "initializeCommand": "docker network create pgmob-network || docker network inspect pgmob-network",
     "runArgs": [
         "--network=pgmob-network"

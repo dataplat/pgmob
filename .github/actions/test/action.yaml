@@ -24,6 +24,13 @@ inputs:
 
 runs:
   using: "composite"
+  container:
+    image: python:${{ inputs.PYTHON_VERSION }}-bullseye
+    env:
+      PGMOB_IMAGE: postgres:${{ inputs.POSTGRES_VERSION }}
+      PGMOB_CONTAINER_NETWORK: "${{ job.container.network }}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
   steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -48,5 +55,3 @@ runs:
         poetry run mypy src/pgmob
         poetry run pytest -vv
       shell: bash
-      env:
-        PGMOB_IMAGE: postgres:${{ inputs.POSTGRES_VERSION }}
