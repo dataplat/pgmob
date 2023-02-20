@@ -37,6 +37,6 @@ runs:
 
     - name: Run tests
       run: |
-        mypy src/pgmob
+        poetry run mypy src/pgmob
         poetry run pytest -vv
       shell: bash
