@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pgmob"
-version = "0.1.2"
+version = "0.1.3a0"
 description = "Postgres Managed Objects - a Postgres database management interface"
 authors = ["Kirill Kravtsov <nvarscar@gmail.com>"]
 packages = [
