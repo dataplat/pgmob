@@ -35,6 +35,7 @@ runs:
     - name: Prepare network
       run: |
         docker network create ${{ inputs.CONTAINER_NETWORK}} || docker network inspect ${{ inputs.CONTAINER_NETWORK}}
+      shell: bash
 
     - name: Prepare container
       run: >
