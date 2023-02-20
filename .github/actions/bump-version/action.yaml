@@ -1,0 +1,39 @@
+name: Poetry Publish
+description: Publish package to PyPI
+branding:
+  icon: package
+  color: blue
+
+inputs:
+  GITHUB_TOKEN:
+    description: Github Token
+    required: true
+  GIT_USERNAME:
+    description: Git username
+    required: true
+  GIT_EMAIL:
+    description: Git email
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        ref: main
+        token: ${{ inputs.GITHUB_TOKEN }}
+
+    - name: Update version based on release tag
+      run: |
+        sed -i 's/^\(_*version_* =\).*/\1 \"${{ github.event.release.tag_name }}\"/' ./pyproject.toml ./src/pgmob/__init__.py
+      shell: bash
+
+    - name: Write version back to main
+      run: |
+        git config --global user.name "${{ inputs.GIT_USERNAME }}"
+        git config --global user.email "${{ inputs.GIT_EMAIL }}"
+        git add ./src/pgmob/__init__.py ./pyproject.toml
+        git commit -m "bumping version to ${{ github.event.release.tag_name }}"
+        git push origin HEAD:main
+      shell: bash

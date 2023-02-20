@@ -32,7 +32,6 @@ runs:
       uses: actions/checkout@v3
       with:
         ref: main
-        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install poetry
       run: pip install poetry==${{ inputs.POETRY_VERSION }}
@@ -43,20 +42,6 @@ runs:
       with:
         python-version: ${{ inputs.PYTHON_VERSION }}
         cache: 'poetry'
-
-    - name: Update version based on release tag
-      run: |
-        sed -i 's/^\(_*version_* =\).*/\1 \"${{ github.event.release.tag_name }}\"/' ./pyproject.toml ./src/pgmob/__init__.py
-      shell: bash
-
-    - name: Write version back to main
-      run: |
-        git config --global user.name "${{ secrets.GIT_USERNAME }}"
-        git config --global user.email "${{ secrets.GIT_EMAIL }}"
-        git add ./src/pgmob/__init__.py ./pyproject.toml
-        git commit -m "bumping version to ${{ github.event.release.tag_name }}"
-        git push origin HEAD:main
-      shell: bash
 
     - name: Install poetry dependencies
       run: |
