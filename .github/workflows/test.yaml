@@ -1,0 +1,45 @@
+name: Poetry Test
+description: Run tests
+branding:
+  icon: play-circle
+  color: yellow
+
+inputs:
+  PYTHON_VERSION:
+    description: Python version
+    required: false
+    default: 3.8
+  POETRY_VERSION:
+    description: Poetry version
+    required: false
+    default: 1.3.2
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        ref: main
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install poetry
+      run: pip install poetry==${{ inputs.POETRY_VERSION }}
+      shell: bash
+
+    - name: Setup python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.PYTHON_VERSION }}
+        cache: 'poetry'
+
+    - name: Install poetry dependencies
+      run: |
+        poetry install -n
+      shell: bash
+
+    - name: Run tests
+      run: |
+        mypy src/pgmob
+        poetry run pytest -vv
+      shell: bash

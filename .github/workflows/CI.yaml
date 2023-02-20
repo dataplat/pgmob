@@ -1,0 +1,13 @@
+name: Run tests
+
+on:
+  push
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Run tests
+        uses: ./.github/workflows/test.yaml

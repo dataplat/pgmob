@@ -1,0 +1,70 @@
+name: Poetry Publish
+description: Publish package to PyPI
+branding:
+  icon: package
+  color: blue
+
+inputs:
+  PYTHON_VERSION:
+    description: Python version
+    required: false
+    default: 3.8
+  POETRY_VERSION:
+    description: Poetry version
+    required: false
+    default: 1.3.2
+  PYPI_USERNAME:
+    description: PyPI username. '__token__' by default
+    required: false
+    default: "__token__"
+  PYPI_TOKEN:
+    description: PyPI API token.
+    required: true
+  PYPI_REGISTRY:
+    description: PYPI registry address
+    required: false
+    default: https://upload.pypi.org/legacy/
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        ref: main
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install poetry
+      run: pip install poetry==${{ inputs.POETRY_VERSION }}
+      shell: bash
+
+    - name: Setup python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.PYTHON_VERSION }}
+        cache: 'poetry'
+
+    - name: Update version based on release tag
+      run: |
+        sed -i 's/^\(_*version_* =\).*/\1 \"${{ github.event.release.tag_name }}\"/' ./pyproject.toml ./src/pgmob/__init__.py
+      shell: bash
+
+    - name: Write version back to main
+      run: |
+        git config --global user.name "${{ secrets.GIT_USERNAME }}"
+        git config --global user.email "${{ secrets.GIT_EMAIL }}"
+        git add ./src/pgmob/__init__.py ./pyproject.toml
+        git commit -m "bumping version to ${{ github.event.release.tag_name }}"
+        git push origin HEAD:main
+      shell: bash
+
+    - name: Install poetry dependencies
+      run: |
+        poetry install -n
+      shell: bash
+
+    - name: Build and Publish
+      run: |
+        poetry config repositories.publish ${{ inputs.PYPI_REGISTRY }}
+        poetry publish -n -u "${{ inputs.PYPI_USERNAME }}" -p "${{ inputs.PYPI_TOKEN }}" -r publish --build
+      shell: bash
