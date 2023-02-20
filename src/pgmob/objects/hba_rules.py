@@ -56,7 +56,7 @@ class HBARule(str):
             if i == 4:
                 if field_map["type"] == "local":
                     auth_options.append(fields[i])
-                elif re.match("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", fields[i]):
+                elif re.match("\\d{1,3}\.\\d{1,3}\.\\d{1,3}\\.\\d{1,3}", fields[i]):
                     field_map["mask"] = fields[i]
                 else:
                     field_map["auth_method"] = fields[i]
