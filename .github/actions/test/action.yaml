@@ -17,6 +17,10 @@ inputs:
     description: PyPI extras to install
     required: false
     default: psycopg2
+  POSTGRES_VERSION:
+    description: Postgres major version to use
+    required: false
+    default: 12
 
 runs:
   using: "composite"
@@ -44,3 +48,5 @@ runs:
         poetry run mypy src/pgmob
         poetry run pytest -vv
       shell: bash
+      env:
+        PGMOB_IMAGE: postgres:${{ inputs.POSTGRES_VERSION }}
