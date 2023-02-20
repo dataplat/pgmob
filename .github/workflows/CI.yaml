@@ -6,8 +6,13 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    container:
+      image: python:10-bullseye
+      env:
+        PGMOB_IMAGE: postgres:12
+        PGMOB_CONTAINER_NETWORK: "${{ job.container.network }}"
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
     steps:
       - name: Checkout
         uses: actions/checkout@v3
