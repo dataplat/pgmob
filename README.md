@@ -1,4 +1,4 @@
-![CI](https://github.com/dataplat/pgmob/actions/workflows/CI.yml/badge.svg)
+![CI](https://github.com/dataplat/pgmob/actions/workflows/CI.yaml/badge.svg)
 # PGMob - PostgreSQL Management Objects
 
 PGMob is a Python package that helps to simplify PostgreSQL administration by providing a layer of abstraction that allows you
