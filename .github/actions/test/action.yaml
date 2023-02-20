@@ -21,6 +21,10 @@ inputs:
     description: Postgres major version to use
     required: false
     default: 12
+  CONTAINER_NETWORK:
+    description: Docker container network to use
+    required: false
+    default: pgmob-network
 
 runs:
   using: "composite"
@@ -28,25 +32,20 @@ runs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Install poetry
-      run: pip install poetry==${{ inputs.POETRY_VERSION }}
-      shell: bash
-
-    - name: Setup python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ inputs.PYTHON_VERSION }}
-        cache: 'poetry'
-
-    - name: Install poetry dependencies
+    - name: Prepare network
       run: |
-        poetry install -n -E ${{ inputs.POETRY_EXTRAS }}
+        docker network create ${{ inputs.CONTAINER_NETWORK}} || docker network inspect ${{ inputs.CONTAINER_NETWORK}}
+
+    - name: Prepare container
+      run: >
+        docker build . -t pgmobtest
+        --build-arg PYTHON_VERSION=PYTHON_VERSION
+        --build-arg POSTGRES_VERSION=POSTGRES_VERSION
+        --build-arg POETRY_EXTRAS=POETRY_EXTRAS
       shell: bash
 
     - name: Run tests
       run: |
-        poetry run mypy src/pgmob
-        poetry run pytest -vv
+        docker run --rm -it pgmobtest mypy src/pgmob
+        docker run --rm -it --network ${{ inputs.CONTAINER_NETWORK}} -e PGMOB_IMAGE=postgres:${{ inputs.POSTGRES_VERSION }} -e PGMOB_CONTAINER_NETWORK=${{ inputs.CONTAINER_NETWORK}} pgmobtest pytest -vv
       shell: bash
-      env:
-        PGMOB_IMAGE: postgres:${{ inputs.POSTGRES_VERSION }}
