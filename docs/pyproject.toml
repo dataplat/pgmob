@@ -6,7 +6,7 @@ authors = ["kirill.kravtsov <kirill.kravtsov@everbridge.com>"]
 
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.9,<4"
 pgmob = {path = "..", extras = ["psycopg2-binary"]}
 sphinx = "^6.1.3"
 
