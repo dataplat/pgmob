@@ -37,7 +37,7 @@ $ pip install -U pgmob[psycopg2]
 
 ## Documentation
 
-TBD
+https://pgmob.readthedocs.io/en/latest/
 
 ## Example code
 

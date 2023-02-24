@@ -16,7 +16,7 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/dataplat/pgmob/"
 repository = "https://github.com/dataplat/pgmob"
-documentation = "https://github.com/dataplat/pgmob"
+documentation = "https://pgmob.readthedocs.io/en/latest/"
 keywords = ["postgres", "sql", "backup", "restore"]
 
 [tool.poetry.dependencies]
