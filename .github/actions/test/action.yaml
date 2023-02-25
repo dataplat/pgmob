@@ -16,7 +16,7 @@ inputs:
   POETRY_EXTRAS:
     description: PyPI extras to install
     required: false
-    default: psycopg2
+    default: psycopg2-binary
   POSTGRES_VERSION:
     description: Postgres major version to use
     required: false
