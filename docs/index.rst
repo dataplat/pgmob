@@ -151,32 +151,3 @@ To refresh the list of cached objects issue a ``.refresh()`` method of the colle
     cluster.tables.refresh()  # refresh table objects
     # or
     cluster.refresh()  # refresh all managed objects
-
-
-GCP bucket backup/restore
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-GCP backups require postgres OS user to have access to gsutil commands
-that allow connectivity with GCP environments. The utility should be
-authenticated in GCP to work.
-
-During the restore, the database backup is copied from the bucket to the local disk before restore.
-You can customize the temporary folder using the ``temp_path`` argument of the GCPRestore class.
-
-Similarly to file backups, GCP objects provide an option to specify a ``bucket``
-to work with, which would be treated as a default path prefix.
-
-.. code:: python
-
-    from pgmob.backup import GCPBackup, GCPRestore
-    ### backup database foo
-    backup = GCPBackup(cluster=cluster)
-    backup.options.no_privileges = True
-    backup.options.schemas = ["public"]
-    backup.backup(database="foo", path="gs://tmp/foo")
-    ### restore two tables into database bar using 4 parallel jobs and disregarding tablespaces
-    restore = GCPRestore(cluster=cluster, bucket="gs://tmp/")
-    restore.options.no_tablespaces = True
-    restore.options.tables = ["a", "b"]
-    restore.options.jobs = 4
-    restore.restore(database="bar", path="foo")

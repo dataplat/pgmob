@@ -693,6 +693,13 @@ class GCPBackup(FileBackup):
         command (str): main backup command
         on_finish_commands (List[str]): commands to execute after backup is completed or failed
 
+    Example:
+        Backup schema "public" of database "foo" with no privileges into the bucket gs://my-bucket/
+
+        >>> backup = GCPBackup(cluster=cluster)
+        >>> backup.options.no_privileges = True
+        >>> backup.options.schemas = ["public"]
+        >>> backup.backup(database="foo", path="gs://my-bucket/foo")  # doctest: +SKIP
     """
 
     def __init__(
@@ -797,6 +804,16 @@ class GCPRestore(FileRestore):
         command (str): main restore command
         on_finish_commands (List[str]): commands to execute after restore is completed or failed
         temp_path (str): Path to a temporary folder
+
+    Example:
+        Restore two tables into database "bar" using 4 parallel jobs and disregarding tablespaces
+
+        >>> restore = GCPRestore(cluster=cluster, bucket="gs://my-bucket/")
+        >>> restore.options.no_tablespaces = True
+        >>> restore.options.tables = ["a", "b"]
+        >>> restore.options.jobs = 4
+        >>> restore.restore(database="bar", path="foo")  # doctest: +SKIP
+
     """
 
     def __init__(
