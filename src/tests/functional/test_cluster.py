@@ -47,18 +47,23 @@ class TestCluster:
         assert result == "'\",\"'"
 
     def test_run_os_command_not_found(self, cluster: Cluster):
+        cmd = "/bin/dsfsdf"
         with pytest.raises(
             PostgresShellCommandError,
             match="Error while executing shell command.*No such file or directory",
         ):
-            cluster.run_os_command("/bin/dsfsdf")
+            cluster.run_os_command(cmd)
+        result = cluster.run_os_command(cmd, raise_exception=False)
+        assert result.exit_code == 127
+        assert "No such file or directory" in result.text
 
     def test_run_os_command_failed(self, cluster: Cluster):
+        cmd = "echo foo; /bin/false"
         with pytest.raises(PostgresShellCommandError, match="foo"):
-            cluster.run_os_command("echo foo | /bin/false")
-        result = cluster.run_os_command("echo foo | /bin/false", raise_exception=False)
+            cluster.run_os_command(cmd)
+        result = cluster.run_os_command(cmd, raise_exception=False)
         assert result.exit_code == 1
-        assert result.text == "foo\n"
+        assert result.text == "foo"
 
     def test_run_os_command_variables(self, cluster: Cluster):
         def test(cmd, result):
