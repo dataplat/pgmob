@@ -44,7 +44,7 @@ runs:
 
     - name: Install poetry dependencies
       run: |
-        poetry install -n -E $POETRY_EXTRAS
+        poetry install -n -E ${{ inputs.POETRY_EXTRAS }}
       shell: bash
       working-directory: docs
 
