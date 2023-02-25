@@ -44,11 +44,12 @@ runs:
 
     - name: Install poetry dependencies
       run: |
-        cd docs
         poetry install -n
       shell: bash
+      working-directory: docs
 
     - name: Testing docs
       run: |
         poetry run -n make -b html
       shell: bash
+      working-directory: docs
