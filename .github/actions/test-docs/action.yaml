@@ -1,0 +1,54 @@
+name: Docs Test
+description: Run docs tests
+branding:
+  icon: book-open
+  color: yellow
+
+inputs:
+  PYTHON_VERSION:
+    description: Python version
+    required: false
+    default: 3.9
+  POETRY_VERSION:
+    description: Poetry version
+    required: false
+    default: 1.3.2
+  POETRY_EXTRAS:
+    description: PyPI extras to install
+    required: false
+    default: psycopg2
+  POSTGRES_VERSION:
+    description: Postgres major version to use
+    required: false
+    default: 12
+  CONTAINER_NETWORK:
+    description: Docker container network to use
+    required: false
+    default: pgmob-network
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install poetry
+      run: pip install poetry==${{ inputs.POETRY_VERSION }}
+      shell: bash
+
+    - name: Setup python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.PYTHON_VERSION }}
+        cache: 'poetry'
+
+    - name: Install poetry dependencies
+      run: |
+        cd docs
+        poetry install -n
+      shell: bash
+
+    - name: Testing docs
+      run: |
+        poetry run -n make -b html
+      shell: bash
