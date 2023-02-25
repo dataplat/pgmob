@@ -13,7 +13,8 @@ class Psycopg2Cursor(BaseCursor):
 
     Args:
         connection (Any): psycopg2 connection object
-        *args, **kwargs: any other parameters to be passed on to the cursor
+        *args: any other parameters to be passed on to the cursor
+        **kwargs: any other parameters to be passed on to the cursor
     """
 
     def __init__(self, connection: Any, *args, **kwargs) -> None:
@@ -100,13 +101,14 @@ class Psycopg2LargeObject(BaseLargeObject):
     Args:
         connection (Any): connection object
         oid (int): large object oid
-        mode (str): connection mode:
-            - r  Open for read only
-            - w  Open for write only
-            - rw Open for read/write
-            - n  Don’t open the file
-            - b  Return data as bytes
-            - t  Decode data as string
+        mode (str): connection mode
+
+            - ``r``:  Open for read only
+            - ``w``:  Open for write only
+            - ``rw``: Open for read/write
+            - ``n``:  Don’t open the file
+            - ``b``:  Return data as bytes
+            - ``t``:  Decode data as string
     """
 
     def __init__(self, connection: Any, oid: int, mode: str, *args, **kwargs) -> None:
@@ -155,7 +157,8 @@ class Psycopg2LargeObject(BaseLargeObject):
 
 class Psycopg2Adapter(BaseAdapter):
     """Psycopg2 adapter for PGMob. Implements all necessary protocols to communicate with
-    Postgres using psycopg2 module."""
+    Postgres using psycopg2 module.
+    """
 
     def __init__(
         self,
@@ -178,12 +181,13 @@ class Psycopg2Adapter(BaseAdapter):
         Args:
             oid (int): large object oid
             mode (str): connection mode:
-                - r  Open for read only
-                - w  Open for write only
-                - rw Open for read/write
-                - n  Don’t open the file
-                - b  Return data as bytes
-                - t  Decode data as string
+
+                - ``r``:  Open for read only
+                - ``w``:  Open for write only
+                - ``rw``: Open for read/write
+                - ``n``:  Don’t open the file
+                - ``b``:  Return data as bytes
+                - ``t``:  Decode data as string
         """
         return Psycopg2LargeObject(connection=self.connection, oid=oid, mode=mode)
 

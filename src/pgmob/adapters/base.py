@@ -36,10 +36,11 @@ class BaseCursor(ABC):
     def execute(self, query: Union[Composable, str], params: tuple = None) -> None:
         """Execute a query with parameters. Should be overridden by the adapter, which should
         provide support for one of the two potential inputs:
-            - a query string
-            - a Composable object that represent one or more query parts:  SQL, Literal,
-              Identifier. Adapter should call the .compose() method of the query object
-              to retrieve the parts and reprocess them as needed.
+
+        - a query string
+        - a Composable object that represent one or more query parts:  SQL, Literal,
+            Identifier. Adapter should call the .compose() method of the query object
+            to retrieve the parts and reprocess them as needed.
 
         Args:
             query (Union[Composable, str]): query object or string

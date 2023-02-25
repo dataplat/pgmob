@@ -191,7 +191,7 @@ class Cluster(object):
             AdapterError: Whenever the adapter returns an error.
 
         Example:
-            To execute a simple query with parameters, pass the parameters either as a tuple or as *args:
+            To execute a simple query with parameters, pass the parameters either as a tuple or as \*args:
 
             >>> cluster.execute("SELECT schemaname, viewowner FROM pg_views WHERE viewname = %s", "pg_tables")
             [('pg_catalog', 'postgres')]

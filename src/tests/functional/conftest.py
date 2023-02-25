@@ -91,7 +91,7 @@ def test_db(psql, container):
     """Creates a temporary DB in a container
 
     Args:
-        name (str) - database name
+        name (str): database name
     """
 
     class TestDb:
@@ -124,8 +124,8 @@ def psql(container: ContainerSpec):
     """Callable that runs a command locally in postgresql container using psql binary.
 
     Args:
-        cmd (str) - sql command
-        db (str) - database name. "postgres" by default
+        cmd (str): sql command
+        db (str): database name. "postgres" by default
     """
 
     @dataclass
@@ -171,7 +171,7 @@ def test_role(psql, container):
     """Creates a temporary user
 
     Args:
-        name (str) - user name
+        name (str): user name
     """
 
     class TestRole:
@@ -218,7 +218,7 @@ def connect(container, container_name, pg_password):
     """Cluster object factory.
 
     Args:
-        dbname (str) - database name. "postgres" by default
+        dbname (str): database name. "postgres" by default
     """
 
     def wrapper(db=None, adapter=None):

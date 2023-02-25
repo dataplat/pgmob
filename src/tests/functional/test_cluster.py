@@ -54,8 +54,11 @@ class TestCluster:
             cluster.run_os_command("/bin/dsfsdf")
 
     def test_run_os_command_failed(self, cluster: Cluster):
-        with pytest.raises(PostgresShellCommandError):
-            cluster.run_os_command("/bin/false")
+        with pytest.raises(PostgresShellCommandError, match="foo"):
+            cluster.run_os_command("echo foo | /bin/false")
+        result = cluster.run_os_command("echo foo | /bin/false", raise_exception=False)
+        assert result.exit_code == 1
+        assert result.text == "foo\n"
 
     def test_run_os_command_variables(self, cluster: Cluster):
         def test(cmd, result):

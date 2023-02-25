@@ -12,7 +12,7 @@ def adapter_factory(container, container_name, pg_password, db):
     """Adapter factory.
 
     Args:
-        adapter_type (str) - adapter type as defined by the adapter_params fixture.
+        adapter_type (str): adapter type as defined by the adapter_params fixture.
     """
 
     def wrapper(adapter_type: str):

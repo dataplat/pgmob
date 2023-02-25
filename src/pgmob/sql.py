@@ -65,7 +65,8 @@ class _Singleton(Composable):
 
 class Composed(Composable):
     """Composed object. Finalized state of co-joined query parts. Can be
-    iterated upon to retrieve the individual parts in proper order."""
+    iterated upon to retrieve the individual parts in proper order.
+    """
 
     def __init__(self, *args: Composable) -> None:
         self._parts = list(self._process_parts(list(args)))
@@ -134,7 +135,7 @@ class SQL(_Singleton):
 
         Args:
             *args: for {} or {0} notation
-            *kwargs: for {keyword} notation
+            **kwargs: for {keyword} notation
 
         Returns:
             Composed: a composed query object

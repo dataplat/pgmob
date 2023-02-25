@@ -93,13 +93,14 @@ class LargeObject(generic._DynamicObject, generic._CollectionChild):
         """Read Large object contents
 
         Args:
-            mode(str):
-                - r  Open for read only
-                - w  Open for write only
-                - rw Open for read/write
-                - n  Don’t open the file
-                - b  Return data as bytes
-                - t  Decode data as string
+            mode(str): one of:
+
+                - ``r``:  Open for read only
+                - ``w``:  Open for write only
+                - ``rw``: Open for read/write
+                - ``n``:  Don’t open the file
+                - ``b``:  Return data as bytes
+                - ``t``:  Decode data as string
 
         Returns:
             bytes/str: Large object contents
