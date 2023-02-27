@@ -3,7 +3,7 @@ from pgmob import objects
 
 
 @pytest.fixture
-def tables(psql, db, cluster_db, schema):
+def tables(psql, db, cluster_db, schema) -> objects.TableCollection:
     """Creates a set of tables"""
     table_list = [
         "public.tmpzzz",
@@ -16,6 +16,29 @@ def tables(psql, db, cluster_db, schema):
 
     tables = objects.TableCollection(cluster=cluster_db)
     yield tables
+
+
+@pytest.fixture
+def columns(psql, db, cluster_db) -> objects.ColumnCollection:
+    """Creates a set of columns"""
+    column_data = [
+        ("id", "int", "NOT NULL GENERATED ALWAYS AS IDENTITY"),
+        ("name", "text", "COLLATE 'C' DEFAULT ('unknown')"),
+        ("data", "jsonb", ""),
+        ("limited", "varchar[32]", ""),
+        ("arr", "int[]", ""),
+        ("gen", "int", "GENERATED ALWAYS AS (id * 2) STORED NOT NULL"),
+    ]
+    table_name = "columnarium"
+    definition = ""
+    for name, typ, other in column_data:
+        definition += ("," if definition else "") + f"{name} {typ} {other}"
+
+    psql(f"CREATE TABLE {table_name} ({definition})", db=db)
+
+    tables = objects.TableCollection(cluster=cluster_db)
+    columns = objects.ColumnCollection(table=tables[table_name])
+    yield columns
 
 
 class TestTables:
@@ -31,6 +54,7 @@ class TestTables:
         assert tbl.tablespace is None
         assert tbl.row_security == False
         assert tbl.oid > 0
+        assert "a" in tbl.columnns
 
         tbl = tables["tmp.tmpzzz"]
         assert tbl.name == "tmpzzz"
@@ -39,6 +63,7 @@ class TestTables:
         assert tbl.tablespace is None
         assert tbl.row_security == False
         assert tbl.oid > 0
+        assert "a" in tbl.columnns
 
     def test_owner(self, tables, role, psql, db):
         def get_current():
@@ -134,3 +159,106 @@ class TestTables:
         assert get_current() == ""
         tables[f"{schema}.tmpzzz"].drop(cascade=True)
         assert get_current(schema) == ""
+
+
+class TestColumns:
+    column_query = """SELECT {field}
+FROM   pg_attribute a
+JOIN pg_type t on t.oid = a.atttypid
+LEFT JOIN pg_collation c on c.oid = a.attcollation
+LEFT JOIN pg_attrdef d on a.atthasdef AND d.adrelid = a.attrelid AND a.attnum = d.adnum
+WHERE  attrelid = 'columnarium'::regclass
+AND    attnum > 0
+AND    NOT attisdropped
+AND    a.attname = '{name}'"""
+
+    def get_current(self, psql, db, field, name):
+        return psql(
+            self.column_query.format(name=name, field=field),
+            db=db,
+        ).output
+
+    def test_init(self, columns):
+        col = columns["id"]
+        assert col.name == "id"
+        assert col.type == "int"  # TODO: change to proper type object once implemented
+        assert col.stat_target == -1
+        assert col.type_mod == -1
+        assert col.number == 1
+        assert col.nullable == False
+        assert col.is_array == False
+        assert col.default == False
+        assert col.expression is None
+        assert col.identity == "ALWAYS"
+        assert col.generated is None
+        assert col.collation is None
+
+        col = columns["name"]
+        assert col.name == "name"
+        assert col.type == "text"
+        assert col.stat_target == -1
+        assert col.type_mod == -1
+        assert col.number == 2
+        assert col.nullable == True
+        assert col.is_array == False
+        assert col.default == True
+        assert col.expression == "'unknown'"
+        assert col.identity is None
+        assert col.generated is None
+        assert col.collation == "C"
+
+        col = columns["data"]
+        assert col.name == "data"
+        assert col.type == "jsonb"
+        assert col.stat_target == -1
+        assert col.type_mod == -1
+        assert col.number == 3
+        assert col.nullable == True
+        assert col.is_array == False
+        assert col.default == False
+        assert col.expression is None
+        assert col.identity is None
+        assert col.generated is None
+        assert col.collation is None
+
+        col = columns["limited"]
+        assert col.name == "limited"
+        assert col.type == "varchar"
+        assert col.stat_target == -1
+        assert col.type_mod == 32
+        assert col.number == 4
+        assert col.nullable == True
+        assert col.is_array == False
+        assert col.default == False
+        assert col.expression is None
+        assert col.identity is None
+        assert col.generated is None
+        assert col.collation is None
+
+        col = columns["arr"]
+        assert col.name == "arr"
+        assert col.type == "int[]"
+        assert col.stat_target == -1
+        assert col.type_mod == -1
+        assert col.number == 5
+        assert col.nullable == True
+        assert col.is_array == True
+        assert col.default == False
+        assert col.expression is None
+        assert col.identity is None
+        assert col.generated is None
+        assert col.collation is None
+
+        col = columns["gen"]
+        assert col.name == "gen"
+        assert col.type == "int"
+        assert col.stat_target == -1
+        assert col.type_mod == -1
+        assert col.number == 6
+        assert col.nullable == False
+        assert col.is_array == False
+        assert col.default == True
+        assert col.expression == "id * 2"
+        assert col.identity is None
+        assert col.generated == "STORED"
+        assert col.collation is None
