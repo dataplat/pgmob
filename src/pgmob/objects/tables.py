@@ -362,7 +362,7 @@ class ColumnCollection(generic._BaseCollection[Column]):
     """An iterable collection of columns indexed by column name."""
 
     def __init__(self, cluster: "Cluster", table: "Table"):
-        super().__init__(cluster=cluster)
+        super().__init__(cluster=cluster, sorted=False)
         self.table = table
         if table and cluster:
             self.refresh()

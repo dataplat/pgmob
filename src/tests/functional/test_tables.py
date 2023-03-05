@@ -54,7 +54,7 @@ class TestTables:
         assert tbl.tablespace is None
         assert tbl.row_security == False
         assert tbl.oid > 0
-        assert "a" in tbl.columnns
+        assert "a" in tbl.columns
 
         tbl = tables["tmp.tmpzzz"]
         assert tbl.name == "tmpzzz"
@@ -63,7 +63,7 @@ class TestTables:
         assert tbl.tablespace is None
         assert tbl.row_security == False
         assert tbl.oid > 0
-        assert "a" in tbl.columnns
+        assert "a" in tbl.columns
 
     def test_owner(self, tables, role, psql, db):
         def get_current():
@@ -262,6 +262,8 @@ AND    a.attname = '{name}'"""
         assert col.identity == objects.Identity.NOT_GENERATED
         assert col.generated == objects.GeneratedColumn.STORED
         assert col.collation is None
+
+        assert str(columns) == "ColumnCollection('id', 'name', 'data', 'limited', 'arr', 'gen')"
 
     def test_name(self, psql, db, columns: objects.ColumnCollection):
         col = columns["name"]

@@ -2,8 +2,9 @@
 
 from abc import abstractmethod
 from enum import Enum
-import re
-from typing import Any, Dict, Generic, Iterator, List, Optional, TYPE_CHECKING, Tuple, TypeVar
+from collections.abc import Iterator
+from collections import UserDict
+from typing import Any, Generic, List, Optional, TYPE_CHECKING, TypeVar
 from pgmob import errors
 from pgmob._decorators import deprecated
 from pgmob.sql import SQL, Identifier, Composable
@@ -210,42 +211,46 @@ def _set_ephemeral_attr(obj: _DynamicObject, attr: str, value: Any):
         setattr(obj, f"_{attr}", value)
 
 
-class MappedCollection(Dict[str, T]):
+class MappedCollection(UserDict[str, T]):
     """Class implements an iterable dictionary.
     Items are accessed via a key, but when iterated over, acts as a list."""
+
+    def __init__(self, sorted=True, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._sorted = sorted
+
+    def keys(self) -> List[str]:  # type: ignore[override]
+        return list(sorted(self.data.keys()) if self._sorted else self.data.keys())
 
     def __iter__(self) -> Iterator[T]:  # type: ignore[override]
         for key in self.keys():
             yield self[key]
 
-    def __repr__(self) -> str:
-        return f"{type(self).__name__}({self.keys()})"
-
-
-class SortedMappedCollection(Dict[str, T]):
-    """Class implements an iterable sorted dictionary.
-    Items are accessed via a key, but when iterated over, acts as a sorted list."""
-
-    def __iter__(self) -> Iterator[T]:  # type: ignore[override]
-        for key in sorted(self.keys()):
-            yield self[key]
+    def __eq__(self, other: Any) -> bool:
+        return self is other
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({sorted(self.keys())})"
+        output = type(self).__name__ + "("
+        if self.data:
+            output += "'"
+            output += "', '".join(self.keys())
+            output += "'"
+        output += ")"
+        return output
 
 
-class _BaseCollection(_ClusterBound, SortedMappedCollection[T]):
+class _BaseCollection(_ClusterBound, MappedCollection[T]):
     """Generic Postgres collection object bound to a cluster."""
 
-    def __init__(self, cluster: "Cluster"):
-        SortedMappedCollection.__init__(self)  # type: ignore
+    def __init__(self, cluster: "Cluster", sorted=True):
+        MappedCollection.__init__(self, sorted=sorted)  # type: ignore
         _ClusterBound.__init__(self, cluster=cluster)
 
     def __setitem__(self, key: str, value: T):
         if not isinstance(value, _ClusterBound):
             raise AttributeError("Unsupported type %s", type(value))
         value.cluster = self.cluster
-        SortedMappedCollection.__setitem__(self, key, value)  # type: ignore
+        MappedCollection.__setitem__(self, key, value)  # type: ignore
 
     @staticmethod
     def _index(name: str, schema: str):
