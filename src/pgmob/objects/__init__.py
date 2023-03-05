@@ -11,7 +11,7 @@ from .replication_slots import ReplicationSlot, ReplicationSlotCollection
 from .roles import Role, RoleCollection
 from .hba_rules import HBARule, HBARuleCollection
 from .sequences import Sequence, SequenceCollection
-from .tables import Table, TableCollection
+from .tables import Table, TableCollection, Column, ColumnCollection, Identity, GeneratedColumn
 from .procedures import (
     Procedure,
     Function,

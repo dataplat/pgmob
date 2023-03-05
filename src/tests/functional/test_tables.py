@@ -23,9 +23,9 @@ def columns(psql, db, cluster_db) -> objects.ColumnCollection:
     """Creates a set of columns"""
     column_data = [
         ("id", "int", "NOT NULL GENERATED ALWAYS AS IDENTITY"),
-        ("name", "text", "COLLATE 'C' DEFAULT ('unknown')"),
+        ("name", "text", "COLLATE \"POSIX\" DEFAULT ('unknown')"),
         ("data", "jsonb", ""),
-        ("limited", "varchar[32]", ""),
+        ("limited", "varchar(30)", ""),
         ("arr", "int[]", ""),
         ("gen", "int", "GENERATED ALWAYS AS (id * 2) STORED NOT NULL"),
     ]
@@ -34,10 +34,10 @@ def columns(psql, db, cluster_db) -> objects.ColumnCollection:
     for name, typ, other in column_data:
         definition += ("," if definition else "") + f"{name} {typ} {other}"
 
-    psql(f"CREATE TABLE {table_name} ({definition})", db=db)
+    assert psql(f"CREATE TABLE {table_name} ({definition})", db=db).output == "CREATE TABLE"
 
     tables = objects.TableCollection(cluster=cluster_db)
-    columns = objects.ColumnCollection(table=tables[table_name])
+    columns = objects.ColumnCollection(table=tables[table_name], cluster=cluster_db)
     yield columns
 
 
@@ -181,84 +181,106 @@ AND    a.attname = '{name}'"""
     def test_init(self, columns):
         col = columns["id"]
         assert col.name == "id"
-        assert col.type == "int"  # TODO: change to proper type object once implemented
+        assert col.type == "integer"  # TODO: change to proper type object once implemented
         assert col.stat_target == -1
-        assert col.type_mod == -1
+        assert col.type_mod is None
         assert col.number == 1
         assert col.nullable == False
         assert col.is_array == False
-        assert col.default == False
+        assert col.has_default == False
         assert col.expression is None
-        assert col.identity == "ALWAYS"
-        assert col.generated is None
+        assert col.identity == objects.Identity.ALWAYS
+        assert col.generated == objects.GeneratedColumn.NOT_GENERATED
         assert col.collation is None
 
         col = columns["name"]
         assert col.name == "name"
         assert col.type == "text"
         assert col.stat_target == -1
-        assert col.type_mod == -1
+        assert col.type_mod is None
         assert col.number == 2
         assert col.nullable == True
         assert col.is_array == False
-        assert col.default == True
-        assert col.expression == "'unknown'"
-        assert col.identity is None
-        assert col.generated is None
-        assert col.collation == "C"
+        assert col.has_default == True
+        assert col.expression == "'unknown'::text"
+        assert col.identity == objects.Identity.NOT_GENERATED
+        assert col.generated == objects.GeneratedColumn.NOT_GENERATED
+        assert col.collation == "POSIX"
 
         col = columns["data"]
         assert col.name == "data"
         assert col.type == "jsonb"
         assert col.stat_target == -1
-        assert col.type_mod == -1
+        assert col.type_mod is None
         assert col.number == 3
         assert col.nullable == True
         assert col.is_array == False
-        assert col.default == False
+        assert col.has_default == False
         assert col.expression is None
-        assert col.identity is None
-        assert col.generated is None
+        assert col.identity == objects.Identity.NOT_GENERATED
+        assert col.generated == objects.GeneratedColumn.NOT_GENERATED
         assert col.collation is None
 
         col = columns["limited"]
         assert col.name == "limited"
-        assert col.type == "varchar"
+        assert col.type == "character varying(30)"
         assert col.stat_target == -1
-        assert col.type_mod == 32
+        assert col.type_mod == 30
         assert col.number == 4
         assert col.nullable == True
         assert col.is_array == False
-        assert col.default == False
+        assert col.has_default == False
         assert col.expression is None
-        assert col.identity is None
-        assert col.generated is None
-        assert col.collation is None
+        assert col.identity == objects.Identity.NOT_GENERATED
+        assert col.generated == objects.GeneratedColumn.NOT_GENERATED
+        assert col.collation == "default"
 
         col = columns["arr"]
         assert col.name == "arr"
-        assert col.type == "int[]"
+        assert col.type == "integer[]"
         assert col.stat_target == -1
-        assert col.type_mod == -1
+        assert col.type_mod is None
         assert col.number == 5
         assert col.nullable == True
         assert col.is_array == True
-        assert col.default == False
+        assert col.has_default == False
         assert col.expression is None
-        assert col.identity is None
-        assert col.generated is None
+        assert col.identity == objects.Identity.NOT_GENERATED
+        assert col.generated == objects.GeneratedColumn.NOT_GENERATED
         assert col.collation is None
 
         col = columns["gen"]
         assert col.name == "gen"
-        assert col.type == "int"
+        assert col.type == "integer"
         assert col.stat_target == -1
-        assert col.type_mod == -1
+        assert col.type_mod is None
         assert col.number == 6
         assert col.nullable == False
         assert col.is_array == False
-        assert col.default == True
-        assert col.expression == "id * 2"
-        assert col.identity is None
-        assert col.generated == "STORED"
+        assert col.has_default == True
+        assert col.expression == "(id * 2)"
+        assert col.identity == objects.Identity.NOT_GENERATED
+        assert col.generated == objects.GeneratedColumn.STORED
         assert col.collation is None
+
+    def test_name(self, psql, db, columns: objects.ColumnCollection):
+        col = columns["name"]
+        col.name = "new_name"
+        col.alter()
+        assert self.get_current(psql, db, "attname", "new_name") == "new_name"
+
+    def test_set_type(
+        self,
+        psql,
+        db,
+        columns: objects.ColumnCollection,
+    ):
+        col = columns["data"]
+        for type, collation, using in [
+            ("text", None, None),
+            ("text", "POSIX", "data::text"),
+            ("integer", None, "bit_length(data::text::bytea)"),
+        ]:
+            col.set_type(type=type, collation=collation, using=using)
+            assert self.get_current(psql, db, "format_type(a.atttypid, a.atttypmod)", "data") == type
+            assert self.get_current(psql, db, "c.collname", "data") == collation if collation else "default"
