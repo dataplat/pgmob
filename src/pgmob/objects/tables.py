@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from ..sql import SQL, Identifier
 from ..errors import *
 from .. import util
+from .._decorators import get_lazy_property
 from . import generic
 
 
@@ -121,6 +122,23 @@ class Table(generic._DynamicObject, generic._CollectionChild):
     @name.setter
     def name(self, name: str):
         generic._set_ephemeral_attr(self, "name", name)
+
+    @property
+    def columns(self) -> "ColumnCollection":
+        """Table column collection
+
+        Example:
+            Retrieving tables from the server after refreshing table objects
+
+            >>> cluster.execute("CREATE TABLE tab1(a int)")
+            []
+            >>> cluster.tables.refresh()
+            >>> cluster.tables['tab1'].columns
+            ColumnCollection('a')
+            >>> cluster.tables['tab1'].columns['a'].type
+            'integer'
+        """
+        return get_lazy_property(self, "columns", lambda: ColumnCollection(table=self, cluster=self.cluster))
 
 
 def _set_column_attr(obj: "Column", attr: str, value: str):
@@ -370,7 +388,7 @@ class ColumnCollection(generic._BaseCollection[Column]):
     def refresh(self):
         """Resets any pending changes and refreshes the list of child objects from the cluster"""
         super().refresh()
-        sql = util.get_sql("get_column")
+        sql = util.get_sql("get_column") + SQL(" ORDER BY a.attnum")
         result = self.cluster.execute(sql, self.table.oid)
         for mapper in [_ColumnMapper(x) for x in result]:
             self[mapper["name"]] = mapper.map(
