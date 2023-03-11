@@ -238,6 +238,10 @@ class MappedCollection(UserDict[str, T]):
         output += ")"
         return output
 
+    def clear(self):
+        """Remove all keys from the collection"""
+        self.data.clear()
+
 
 class _BaseCollection(_ClusterBound, MappedCollection[T]):
     """Generic Postgres collection object bound to a cluster."""

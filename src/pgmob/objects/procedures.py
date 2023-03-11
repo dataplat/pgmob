@@ -355,7 +355,7 @@ class _ProcedureMapper(generic._BaseObjectMapper[_BaseProcedure]):
         return obj
 
 
-class ProcedureVariations(List[_BaseProcedure], generic._ClusterBound):
+class ProcedureVariations(list[_BaseProcedure], generic._ClusterBound):
     """A list of procedures with the same name, but variable argument sets."""
 
     def __init__(self, cluster: "Cluster"):
