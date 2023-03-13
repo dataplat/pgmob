@@ -10,11 +10,11 @@ SELECT a.attname,
     a.attgenerated,
     col.collname,
     pg_get_expr(d.adbin, d.adrelid) AS expr
-FROM pg_attribute a
-JOIN pg_type t ON t.oid = a.atttypid
-LEFT JOIN pg_collation c ON c.oid = a.attcollation
-LEFT JOIN pg_attrdef d ON a.atthasdef AND d.adrelid = a.attrelid AND a.attnum = d.adnum
-LEFT JOIN pg_collation col ON a.attcollation > 0 AND col.oid = a.attcollation
+FROM pg_catalog.pg_attribute a
+JOIN pg_catalog.pg_type t ON t.oid = a.atttypid
+LEFT JOIN pg_catalog.pg_collation c ON c.oid = a.attcollation
+LEFT JOIN pg_catalog.pg_attrdef d ON a.atthasdef AND d.adrelid = a.attrelid AND a.attnum = d.adnum
+LEFT JOIN pg_catalog.pg_collation col ON a.attcollation > 0 AND col.oid = a.attcollation
 WHERE a.attrelid = %s
   AND a.attnum > 0
   AND NOT a.attisdropped

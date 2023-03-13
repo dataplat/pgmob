@@ -1,5 +1,5 @@
 from typing import List, Any
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 import pytest
 from pgmob.sql import SQL, Identifier
 from pgmob import objects, Cluster
@@ -8,21 +8,21 @@ from .helpers import *
 
 
 @pytest.fixture
-def table_cursor(cursor, table_tuples: list[TableTuple]):
+def table_cursor(cursor: MagicMock, table_tuples: List[TableTuple]):
     """Cursor that returns table tuples"""
     cursor.fetchall.return_value = table_tuples
     return cursor
 
 
 @pytest.fixture
-def table_collection(cluster: Cluster, table_cursor: Any):
+def table_collection(cluster: Cluster, table_cursor: Any) -> objects.TableCollection:
     """Returns an initialized TableCollection object"""
     collection = objects.TableCollection(cluster=cluster)
     return collection
 
 
 @pytest.fixture
-def table(cluster: Cluster, table_tuples: list[TableTuple]):
+def table(cluster: Cluster, table_tuples: list[TableTuple]) -> objects.Table:
     """Returns an initialized Table object"""
     data = table_tuples[0]
     return objects.Table(
@@ -35,21 +35,21 @@ def table(cluster: Cluster, table_tuples: list[TableTuple]):
 
 
 @pytest.fixture
-def column_cursor(cursor: Any, column_tuples: List[ColumnTuple]):
+def column_cursor(cursor: Any, column_tuples: List[ColumnTuple]) -> MagicMock:
     """Cursor that returns column tuples"""
     cursor.fetchall.return_value = column_tuples
     return cursor
 
 
 @pytest.fixture
-def column_collection(cluster: Cluster, column_cursor: Any, table: objects.Table):
+def column_collection(cluster: Cluster, column_cursor: Any, table: objects.Table) -> objects.ColumnCollection:
     """Returns an initialized ColumnCollection object"""
     collection = objects.ColumnCollection(cluster=cluster, table=table)
     return collection
 
 
 @pytest.fixture
-def column(cluster: Cluster, column_tuples: List[ColumnTuple], table: objects.Table):
+def column(cluster: Cluster, column_tuples: List[ColumnTuple], table: objects.Table) -> objects.Column:
     """Returns an initialized Column object"""
     data = column_tuples[0]
     return objects.Column(
@@ -57,10 +57,11 @@ def column(cluster: Cluster, column_tuples: List[ColumnTuple], table: objects.Ta
         name=data.attname,
         table=table,
         type=data.type,
+        number=1,
     )
 
 
-def _get_key(table):
+def _get_key(table: TableTuple) -> str:
     return table.tablename if table.schemaname == "public" else f"{table.schemaname}.{table.tablename}"
 
 
@@ -169,7 +170,7 @@ class TestColumn:
         assert column.type == col.type
         assert column.stat_target == -1
         assert column.type_mod is None
-        assert column.number is None
+        assert column.number == 1
         assert column.nullable == True
         assert column.is_array == False
         assert column.has_default == False
@@ -177,6 +178,32 @@ class TestColumn:
         assert column.identity == objects.Identity.NOT_GENERATED
         assert column.generated == objects.GeneratedColumn.NOT_GENERATED
         assert column.collation is None
+        assert str(column) == f"Column('{col.attname}')"
+
+    def test_refresh(
+        self,
+        column_tuples: List[ColumnTuple],
+        column: objects.Column,
+        column_cursor: MagicMock,
+        pgmob_tester: PGMobTester,
+    ):
+        col = column_tuples[0]
+        column.name = "foo"
+        column.refresh()
+        assert column.name == col.attname
+        pgmob_tester.assertSql("FROM pg_catalog.pg_attribute", column_cursor)
+
+    def test_alter(
+        self,
+        column: objects.Column,
+        column_cursor: MagicMock,
+        pgmob_tester: PGMobTester,
+    ):
+        column.name = "foo"
+        column.alter()
+        pgmob_tester.assertSql("ALTER TABLE", column_cursor)
+        pgmob_tester.assertSql(" RENAME COLUMN ", column_cursor)
+        pgmob_tester.assertSql("foo", column_cursor)
 
 
 class TestColumnCollection:

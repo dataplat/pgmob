@@ -227,6 +227,21 @@ class Column(generic._DynamicObject, generic._CollectionChild):
         self._expression = expression
 
     @property
+    def _ephemeral(self) -> bool:
+        return self._number is None
+
+    def refresh(self):
+        """Re-initializes the object, refreshing its properties from Postgres cluster"""
+        super().refresh()
+        if not self._ephemeral:
+            sql = util.get_sql("get_column") + SQL(" AND a.attnum = %s")
+            result = self.cluster.execute(sql, (self.table.oid, self.number))
+            if not result:
+                raise PostgresError("Column number %s was not found", self.number)
+            mapper = _ColumnMapper(result[0])
+            mapper.map(self)
+
+    @property
     def name(self) -> str:
         return self._name
 
