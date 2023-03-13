@@ -1,33 +1,12 @@
 from collections import namedtuple
 from typing import List
 import pytest
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 from pytest_mock import MockerFixture
-from pgmob.sql import Composed
 from pgmob.adapters.base import BaseAdapter
 from pgmob.cluster import Cluster
-
-
-class PGMobTester:
-    @staticmethod
-    def _parse_calls(*args, statement: int = None) -> List[str]:
-        singletons: List[str] = []
-        statements = [args[statement]] if statement else args
-        for singleton in [x.args[0] for x in statements]:
-            if isinstance(singleton, Composed):
-                singletons.extend([str(x._value) for x in singleton._parts])
-            else:
-                singletons.append(singleton._value)
-        return singletons
-
-    @staticmethod
-    def assertSql(sql: str, cursor: Mock, statement: int = None, mogrify: bool = False):
-        singletons = PGMobTester._parse_calls(
-            *(cursor.mogrify.call_args_list if mogrify else cursor.execute.call_args_list)
-        )
-        assert any(
-            [sql in x for x in singletons]
-        ), "{sql} was supposed to be among statements:\n{stmts}".format(sql=sql, stmts="\n".join(singletons))
+from .tuples import *
+from .helpers import *
 
 
 @pytest.fixture
@@ -36,7 +15,7 @@ def pgmob_tester():
 
 
 @pytest.fixture
-def cursor(mocker):
+def cursor(mocker) -> MagicMock:
     """Cursor object"""
     cursor = mocker.MagicMock()
     return cursor
@@ -264,19 +243,8 @@ def view_tuples(role_tuples, schema_tuples):
 
 
 @pytest.fixture
-def table_tuples(role_tuples, schema_tuples):
+def table_tuples(role_tuples, schema_tuples) -> List[TableTuple]:
     """Returns a list of Table tuples"""
-    TableTuple = namedtuple(
-        typename="TableTuple",
-        field_names=[
-            "tablename",
-            "tableowner",
-            "schemaname",
-            "tablespace",
-            "rowsecurity",
-            "oid",
-        ],
-    )
     return [
         TableTuple(
             tablename="tab1",
@@ -301,6 +269,56 @@ def table_tuples(role_tuples, schema_tuples):
             tablespace="pgmobnsp",
             rowsecurity=True,
             oid=78664,
+        ),
+    ]
+
+
+@pytest.fixture
+def column_tuples() -> List[ColumnTuple]:
+    """Returns a list of Column tuples"""
+
+    return [
+        ColumnTuple(
+            attname="id",
+            type="int",
+            attstattarget=-1,
+            attnum=1,
+            is_array=False,
+            type_mod=None,
+            nullable=False,
+            atthasdef=True,
+            attidentity="a",
+            attgenerated="",
+            collname="default",
+            expr="",
+        ),
+        ColumnTuple(
+            attname="name",
+            type="text",
+            attstattarget=-1,
+            attnum=2,
+            is_array=False,
+            type_mod=None,
+            nullable=True,
+            atthasdef=True,
+            attidentity="",
+            attgenerated="",
+            collname="POSIX",
+            expr="'unknown'::text",
+        ),
+        ColumnTuple(
+            attname="limited",
+            type="character varying(30)",
+            attstattarget=-1,
+            attnum=3,
+            is_array=False,
+            type_mod=30,
+            nullable=True,
+            atthasdef=False,
+            attidentity="",
+            attgenerated="",
+            collname="default",
+            expr="",
         ),
     ]
 
