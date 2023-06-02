@@ -1,6 +1,6 @@
 """Postgresql table objects"""
 from typing import TYPE_CHECKING, Any, Optional
-from ..sql import SQL, Identifier
+from ..sql import SQL, Identifier, Literal
 from ..errors import *
 from .. import util
 from .._decorators import get_lazy_property
@@ -141,17 +141,23 @@ class Table(generic._DynamicObject, generic._CollectionChild):
         return get_lazy_property(self, "columns", lambda: ColumnCollection(table=self, cluster=self.cluster))
 
 
-def _set_column_attr(obj: "Column", attr: str, value: str):
+def _set_column_attr(obj: "Column", attr: str, value: Any):
     params = dict(
         table=obj.table._sql_fqn(),
         name=obj._sql_fqn(),
         value=Identifier(value),
     )
     stmt_map = {
-        "name": SQL("ALTER TABLE {table} RENAME COLUMN {name} TO {value}"),
+        "name": SQL("ALTER TABLE {table} RENAME COLUMN {name} TO {value}").format(**params),
+        "stat_target": SQL("ALTER TABLE {table} ALTER COLUMN {name} SET STATISTICS {stats}").format(
+                stats=Literal(value), **params
+            ),
+        "nullable": SQL(
+            f"ALTER TABLE {{table}} ALTER COLUMN {{name}} {'SET' if not value else 'DROP'} NOT NULL"
+        ).format(**params),
     }
     if getattr(obj, f"_{attr}") != value:
-        obj._changes[attr] = generic._SQLChange(obj=obj, sql=stmt_map[attr].format(**params))
+        obj._changes[attr] = generic._SQLChange(obj=obj, sql=stmt_map[attr])
         setattr(obj, f"_{attr}", value)
 
 
@@ -257,6 +263,10 @@ class Column(generic._DynamicObject, generic._CollectionChild):
     def stat_target(self) -> int:
         return self._stat_target
 
+    @stat_target.setter
+    def stat_target(self, value: int):
+        _set_column_attr(self, "stat_target", value)
+
     @property
     def number(self) -> Optional[int]:
         return self._number
@@ -272,6 +282,10 @@ class Column(generic._DynamicObject, generic._CollectionChild):
     @property
     def nullable(self) -> bool:
         return self._nullable
+
+    @nullable.setter
+    def nullable(self, value: bool):
+        _set_column_attr(self, "nullable", value)
 
     @property
     def has_default(self) -> bool:

@@ -271,6 +271,21 @@ AND    a.attname = '{name}'"""
         col.alter()
         assert self.get_current(psql, db, "attname", "new_name") == "new_name"
 
+    def test_stat_target(self, psql, db, columns: objects.ColumnCollection):
+        col = columns["name"]
+        col.stat_target = 10
+        col.alter()
+        assert self.get_current(psql, db, "attstattarget", "name") == "10"
+
+    def test_nullable(self, psql, db, columns: objects.ColumnCollection):
+        col = columns["name"]
+        col.nullable = False
+        col.alter()
+        assert self.get_current(psql, db, "attnotnull", "name") == "t"
+        col.nullable = True
+        col.alter()
+        assert self.get_current(psql, db, "attnotnull", "name") == "f"
+
     def test_set_type(
         self,
         psql,
