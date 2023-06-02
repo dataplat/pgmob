@@ -301,3 +301,8 @@ AND    a.attname = '{name}'"""
             col.set_type(type=type, collation=collation, using=using)
             assert self.get_current(psql, db, "format_type(a.atttypid, a.atttypmod)", "data") == type
             assert self.get_current(psql, db, "c.collname", "data") == collation if collation else "default"
+
+    def test_drop(self, psql, db, columns: objects.ColumnCollection):
+        col = columns["name"]
+        col.drop()
+        assert self.get_current(psql, db, "attname", "name") == ""

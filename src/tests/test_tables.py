@@ -205,6 +205,20 @@ class TestColumn:
         pgmob_tester.assertSql(" RENAME COLUMN ", column_cursor)
         pgmob_tester.assertSql("foo", column_cursor)
 
+    def test_drop(
+        self,
+        column: objects.Column,
+        column_cursor: MagicMock,
+        pgmob_tester: PGMobTester,
+        column_tuples: List[ColumnTuple],
+    ):
+        col = column_tuples[0]
+        column.drop(cascade=True)
+        pgmob_tester.assertSql("ALTER TABLE", column_cursor)
+        pgmob_tester.assertSql(" DROP COLUMN ", column_cursor)
+        pgmob_tester.assertSql(col.attname, column_cursor)
+        pgmob_tester.assertSql("CASCADE", column_cursor)
+
 
 class TestColumnCollection:
     def test_init(self, column_tuples: List[ColumnTuple], column_collection: objects.ColumnCollection):

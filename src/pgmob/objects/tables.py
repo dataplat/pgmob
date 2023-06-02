@@ -150,8 +150,8 @@ def _set_column_attr(obj: "Column", attr: str, value: Any):
     stmt_map = {
         "name": SQL("ALTER TABLE {table} RENAME COLUMN {name} TO {value}").format(**params),
         "stat_target": SQL("ALTER TABLE {table} ALTER COLUMN {name} SET STATISTICS {stats}").format(
-                stats=Literal(value), **params
-            ),
+            stats=Literal(value), **params
+        ),
         "nullable": SQL(
             f"ALTER TABLE {{table}} ALTER COLUMN {{name}} {'SET' if not value else 'DROP'} NOT NULL"
         ).format(**params),
@@ -321,7 +321,6 @@ class Column(generic._DynamicObject, generic._CollectionChild):
         params = dict(
             table=self.table._sql_fqn(),
             name=self._sql_fqn(),
-            # value=Identifier(type),
         )
         sql = (
             SQL(f"ALTER TABLE {{table}} ALTER COLUMN {{name}} TYPE {type}").format(**params)
@@ -330,6 +329,20 @@ class Column(generic._DynamicObject, generic._CollectionChild):
         )
         self.cluster.execute(sql)
         self.refresh()
+
+    def drop(self, cascade: bool = False):
+        """Drops the column from an existing table
+
+        Args:
+            cascade (bool): drop dependent objects
+        """
+        sql = SQL("ALTER TABLE {table} DROP COLUMN {name}").format(
+            table=self.table._sql_fqn(),
+            name=self._sql_fqn(),
+        )
+        if cascade:
+            sql += SQL(" CASCADE")
+        self.cluster.execute(sql)
 
 
 class _TableMapper(generic._BaseObjectMapper[Table]):
