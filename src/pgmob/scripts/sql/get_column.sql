@@ -9,7 +9,11 @@ SELECT a.attname,
     a.attidentity,
     a.attgenerated,
     col.collname,
-    pg_get_expr(d.adbin, d.adrelid) AS expr
+    pg_get_expr(d.adbin, d.adrelid) AS expr,
+    CASE
+        WHEN a.attidentity IN ('a','d') THEN pg_get_serial_sequence(a.attrelid::regclass::text, a.attname)
+        ELSE NULL
+    END as sequence_name
 FROM pg_catalog.pg_attribute a
 JOIN pg_catalog.pg_type t ON t.oid = a.atttypid
 LEFT JOIN pg_catalog.pg_collation c ON c.oid = a.attcollation

@@ -178,6 +178,7 @@ class TestColumn:
         assert column.identity == objects.Identity.NOT_GENERATED
         assert column.generated == objects.GeneratedColumn.NOT_GENERATED
         assert column.collation is None
+        assert col.sequence_name == 'public."tbl-A_id_seq"'
         assert str(column) == f"Column('{col.attname}')"
 
     def test_refresh(

@@ -7,6 +7,7 @@ class TestSQL:
     def test_init(self):
         assert SQL("asd")._value == "asd"
         assert SQL("asd") == SQL("asd")
+        assert SQL(None) == SQL("")
         assert SQL("asd") != SQL("asf")
         assert SQL("asd") * 4 == Composed(SQL("asd"), SQL("asd"), SQL("asd"), SQL("asd"))
         assert SQL("asd") + SQL("asf") == Composed(SQL("asd"), SQL("asf"))

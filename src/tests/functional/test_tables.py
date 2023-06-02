@@ -192,6 +192,7 @@ AND    a.attname = '{name}'"""
         assert col.identity == objects.Identity.ALWAYS
         assert col.generated == objects.GeneratedColumn.NOT_GENERATED
         assert col.collation is None
+        assert col.sequence_name == "public.columnarium_id_seq"
 
         col = columns["name"]
         assert col.name == "name"
@@ -306,3 +307,89 @@ AND    a.attname = '{name}'"""
         col = columns["name"]
         col.drop()
         assert self.get_current(psql, db, "attname", "name") == ""
+
+    def test_script(self, psql, db, cluster_db, columns: objects.ColumnCollection):
+        scripts = {
+            "id": (
+                'ALTER TABLE "public"."columnarium" ADD COLUMN "id"'
+                " integer NOT NULL GENERATED ALWAYS AS IDENTITY"
+                " (SEQUENCE NAME public.columnarium_id_seq)"
+            ),
+            "name": (
+                'ALTER TABLE "public"."columnarium" ADD COLUMN "name" text'
+                " COLLATE \"POSIX\" DEFAULT 'unknown'::text"
+            ),
+            "data": 'ALTER TABLE "public"."columnarium" ADD COLUMN "data" jsonb',
+            "limited": (
+                'ALTER TABLE "public"."columnarium" ADD COLUMN '
+                '"limited" character varying(30) COLLATE "default"'
+            ),
+            "arr": 'ALTER TABLE "public"."columnarium" ADD COLUMN "arr" integer[]',
+        }
+        for name, script in scripts.items():
+            sql = columns[name].script().decode("UTF8")
+            assert sql == script
+            columns[name].drop()
+            cluster_db.execute(sql)
+            assert self.get_current(psql, db, "attname", name) == name
+
+    def test_create(
+        self,
+        psql,
+        db,
+        columns: objects.ColumnCollection,
+        cluster_db,
+    ):
+        col = objects.Column(
+            name="new",
+            table=cluster_db.tables["columnarium"],
+            type="text",
+            cluster=cluster_db,
+        )
+        col.create()
+        assert self.get_current(psql, db, "format_type(a.atttypid, a.atttypmod)", "new") == "text"
+        columns.refresh()
+        assert "new" in columns
+
+    def test_create_identity(
+        self,
+        psql,
+        db,
+        columns: objects.ColumnCollection,
+        cluster_db,
+    ):
+        col = objects.Column(
+            name="new",
+            table=cluster_db.tables["columnarium"],
+            type="int",
+            cluster=cluster_db,
+            identity=objects.Identity.ALWAYS,
+            sequence_name="myseq",
+        )
+        col.create()
+        assert (
+            self.get_current(psql, db, "pg_get_serial_sequence(a.attrelid::regclass::text, a.attname)", "new")
+            == "public.myseq"
+        )
+        columns.refresh()
+        assert "new" in columns
+
+    def test_create_generated(
+        self,
+        psql,
+        db,
+        columns: objects.ColumnCollection,
+        cluster_db,
+    ):
+        col = objects.Column(
+            name="new",
+            table=cluster_db.tables["columnarium"],
+            type="int",
+            cluster=cluster_db,
+            generated=objects.GeneratedColumn.STORED,
+            expression="id * 2",
+        )
+        col.create()
+        assert self.get_current(psql, db, "pg_get_expr(d.adbin, d.adrelid)", "new") == "(id * 2 )"
+        columns.refresh()
+        assert "new" in columns

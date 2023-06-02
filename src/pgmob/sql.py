@@ -108,7 +108,7 @@ class SQL(_Singleton):
     """
 
     def __init__(self, statement: str) -> None:
-        super().__init__(statement)
+        super().__init__(statement if statement else "")
 
     def join(self, iter: Sequence[Composable]) -> Composed:
         """Joins basic query building blocks, such as SQL, Literal, Identifier.

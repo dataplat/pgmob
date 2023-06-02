@@ -14,6 +14,7 @@ class ColumnTuple(NamedTuple):
     attgenerated: str
     collname: str
     expr: str
+    sequence_name: str
 
 
 class TableTuple(NamedTuple):

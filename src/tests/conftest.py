@@ -291,6 +291,7 @@ def column_tuples() -> List[ColumnTuple]:
             attgenerated="",
             collname="default",
             expr="",
+            sequence_name='public."tbl-A_id_seq"',
         ),
         ColumnTuple(
             attname="name",
@@ -305,6 +306,7 @@ def column_tuples() -> List[ColumnTuple]:
             attgenerated="",
             collname="POSIX",
             expr="'unknown'::text",
+            sequence_name="",
         ),
         ColumnTuple(
             attname="limited",
@@ -319,6 +321,7 @@ def column_tuples() -> List[ColumnTuple]:
             attgenerated="",
             collname="default",
             expr="",
+            sequence_name="",
         ),
     ]
 

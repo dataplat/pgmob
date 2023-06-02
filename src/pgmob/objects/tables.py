@@ -1,6 +1,6 @@
 """Postgresql table objects"""
 from typing import TYPE_CHECKING, Any, Optional
-from ..sql import SQL, Identifier, Literal
+from ..sql import SQL, Composable, Identifier, Literal
 from ..errors import *
 from .. import util
 from .._decorators import get_lazy_property
@@ -216,6 +216,7 @@ class Column(generic._DynamicObject, generic._CollectionChild):
         generated: GeneratedColumn = GeneratedColumn.NOT_GENERATED,
         collation: str = None,
         expression: str = None,
+        sequence_name: str = None,
     ):
         super().__init__(kind="COLUMN", cluster=cluster, name=name)
         generic._CollectionChild.__init__(self, parent=parent)
@@ -231,6 +232,7 @@ class Column(generic._DynamicObject, generic._CollectionChild):
         self._generated = GeneratedColumn(generated)
         self._collation = collation
         self._expression = expression
+        self._sequence_name = sequence_name
 
     @property
     def _ephemeral(self) -> bool:
@@ -307,6 +309,10 @@ class Column(generic._DynamicObject, generic._CollectionChild):
     def expression(self) -> Optional[str]:
         return self._expression
 
+    @property
+    def sequence_name(self) -> Optional[str]:
+        return self._sequence_name
+
     def set_type(self, type: str, collation: Optional[str] = None, using: Optional[str] = None) -> None:
         """Changes the column type.
 
@@ -344,6 +350,47 @@ class Column(generic._DynamicObject, generic._CollectionChild):
             sql += SQL(" CASCADE")
         self.cluster.execute(sql)
 
+    def _refresh_by_name(self):
+        sql = util.get_sql("get_column") + SQL(" AND a.attname = %s")
+        _ColumnMapper(self.cluster.execute(sql, self.name)[0]).map(self)
+
+    def create(self):
+        """Create a column in an existing table"""
+        self.cluster.execute(self.script(as_composable=True))
+
+    def script(self, as_composable: bool = False) -> str | Composable:
+        """Generate a column creation script.
+
+        Args:
+            as_composable (bool): return Composable object instead of plain text
+
+        Returns:
+            Union[str, Composable]: column creation script
+        """
+        sql = SQL(f"ALTER TABLE {{table}} ADD COLUMN {{column}} {self.type}").format(
+            table=self.table._sql_fqn(),
+            column=self._sql_fqn(),
+        )
+        if self.collation:
+            sql += SQL(" COLLATE {collation}").format(collation=Identifier(self.collation))
+        if not self.nullable:
+            sql += SQL(" NOT NULL")
+        if self.has_default:
+            sql += SQL(f" DEFAULT {self.expression}")
+        if self.generated == GeneratedColumn.STORED:
+            sql += SQL(f" GENERATED ALWAYS AS ( {self.expression} ) STORED")
+        if self.identity and self.identity != Identity.NOT_GENERATED:
+            identity = {Identity.ALWAYS: "ALWAYS", Identity.DEFAULT: "BY DEFAULT"}[self.identity]
+            sql += SQL(" GENERATED ") + SQL(identity) + SQL(" AS IDENTITY")
+            if self.sequence_name:
+                sql += SQL(f" (SEQUENCE NAME {self.sequence_name})")
+
+        if as_composable:
+            return sql
+        else:
+            with self.cluster.adapter.cursor() as cur:
+                return cur.mogrify(sql)
+
 
 class _TableMapper(generic._BaseObjectMapper[Table]):
     """Maps out a resultset from a database query to a table object"""
@@ -374,6 +421,7 @@ class _ColumnMapper(generic._BaseObjectMapper[Column]):
         "generated",
         "collation",
         "expression",
+        "sequence_name",
     ]
 
     exclude = ["identity", "generated"]
