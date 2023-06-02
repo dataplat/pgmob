@@ -1,47 +1,47 @@
 {
-    "name": "Python 3",
-    "build": {
-        "dockerfile": "Dockerfile",
-        "context": "..",
-        "args": {
-            "PYTHON_VERSION": "3.10-bullseye"
-        }
-    },
-    // Configure tool-specific properties.
-    "customizations": {
-        // Configure properties specific to VS Code.
-        "vscode": {
-            // Set *default* container specific settings.json values on container create.
-            "settings": {
-                "terminal.integrated.profiles.linux": {
-                    "bash": {
-                        "path": "/bin/bash"
-                    }
-                },
-                "python.defaultInterpreterPath": "/usr/local/bin/python",
-                "python.languageServer": "Default",
-                "python.linting.enabled": true,
-                "python.linting.pylintEnabled": true
-            },
-            // Add the IDs of extensions you want installed when the container is created.
-            "extensions": [
-                "ms-python.python",
-                "ms-python.vscode-pylance"
-            ]
-        }
-    },
-    "containerEnv": {
-        "PGMOB_HOST": "pgmob-postgres",
-        "PGMOB_CONTAINER_NAME": "pgmob-postgres",
-        "PGMOB_CONTAINER_NETWORK": "pgmob-network"
-    },
-    "mounts": [
-        "source=//var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-    ],
-    // Use 'postCreateCommand' to run commands after the container is created.
-    "postCreateCommand": "poetry install -E psycopg2",
-    "initializeCommand": "docker network create pgmob-network || docker network inspect pgmob-network",
-    "runArgs": [
-        "--network=pgmob-network"
-    ]
+  "name": "Python 3",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "..",
+    "args": {
+      "PYTHON_VERSION": "3.10-bullseye"
+    }
+  },
+  // Configure tool-specific properties.
+  "customizations": {
+    // Configure properties specific to VS Code.
+    "vscode": {
+      // Set *default* container specific settings.json values on container create.
+      "settings": {
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash"
+          }
+        },
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.languageServer": "Default",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true
+      },
+      // Add the IDs of extensions you want installed when the container is created.
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  },
+  "containerEnv": {
+    "PGMOB_HOST": "pgmob-postgres",
+    "PGMOB_CONTAINER_NAME": "pgmob-postgres",
+    "PGMOB_CONTAINER_NETWORK": "pgmob-network"
+  },
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  // Use 'postCreateCommand' to run commands after the container is created.
+  "postCreateCommand": "poetry install -E psycopg2",
+  "initializeCommand": "docker network create pgmob-network || docker network inspect pgmob-network",
+  "runArgs": [
+    "--network=pgmob-network"
+  ]
 }

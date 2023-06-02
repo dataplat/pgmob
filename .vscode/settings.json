@@ -1,13 +1,17 @@
 {
-    "python.linting.pylintEnabled": false,
-    "python.linting.mypyEnabled": true,
-    "python.linting.enabled": true,
-    "files.eol": "\n",
-    "python.testing.pytestArgs": [
-        "src/tests"
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
-    "editor.formatOnSave": true,
-    "python.formatting.provider": "black",
+  "python.linting.pylintEnabled": false,
+  "python.linting.mypyEnabled": true,
+  "python.linting.enabled": true,
+  "files.eol": "\n",
+  "python.testing.pytestArgs": [
+    "src/tests"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "editor.formatOnSave": true,
+  "python.formatting.provider": "none",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "black-formatter.importStrategy": "fromEnvironment"
 }
