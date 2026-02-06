@@ -1,8 +1,10 @@
+import re
 from collections import namedtuple
+
 import pytest
+
 from pgmob.sql import SQL
 from pgmob.util import *
-import re
 
 
 class TestVersion:

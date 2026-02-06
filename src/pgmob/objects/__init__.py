@@ -7,21 +7,21 @@ The object state can be refreshed any time by calling .refresh() on the object.
 """
 
 from .databases import Database, DatabaseCollection
+from .hba_rules import HBARule, HBARuleCollection
+from .large_objects import LargeObject, LargeObjectCollection
+from .procedures import (
+    Aggregate,
+    Function,
+    ParallelSafety,
+    Procedure,
+    ProcedureCollection,
+    ProcedureVariations,
+    Volatility,
+    WindowFunction,
+)
 from .replication_slots import ReplicationSlot, ReplicationSlotCollection
 from .roles import Role, RoleCollection
-from .hba_rules import HBARule, HBARuleCollection
+from .schemas import Schema, SchemaCollection
 from .sequences import Sequence, SequenceCollection
 from .tables import Table, TableCollection
-from .procedures import (
-    Procedure,
-    Function,
-    Aggregate,
-    WindowFunction,
-    Volatility,
-    ParallelSafety,
-    ProcedureVariations,
-    ProcedureCollection,
-)
 from .views import View, ViewCollection
-from .schemas import Schema, SchemaCollection
-from .large_objects import LargeObject, LargeObjectCollection

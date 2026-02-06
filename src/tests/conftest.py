@@ -1,11 +1,13 @@
 from collections import namedtuple
 from typing import List
-import pytest
 from unittest.mock import Mock
+
+import pytest
 from pytest_mock import MockerFixture
-from pgmob.sql import Composed
+
 from pgmob.adapters.base import BaseAdapter
 from pgmob.cluster import Cluster
+from pgmob.sql import Composed
 
 
 class PGMobTester:
@@ -25,9 +27,9 @@ class PGMobTester:
         singletons = PGMobTester._parse_calls(
             *(cursor.mogrify.call_args_list if mogrify else cursor.execute.call_args_list)
         )
-        assert any(
-            [sql in x for x in singletons]
-        ), "{sql} was supposed to be among statements:\n{stmts}".format(sql=sql, stmts="\n".join(singletons))
+        assert any([sql in x for x in singletons]), (
+            "{sql} was supposed to be among statements:\n{stmts}".format(sql=sql, stmts="\n".join(singletons))
+        )
 
 
 @pytest.fixture

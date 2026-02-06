@@ -32,7 +32,53 @@ $ pip install -U pgmob
 To include the adapter, use pip extras feature:
 
 ```shell
-$ pip install -U pgmob[psycopg2]
+$ pip install -U pgmob[psycopg2-binary]
+```
+
+## Development
+
+PGMob uses [UV](https://docs.astral.sh/uv/) for dependency management, [Ruff](https://docs.astral.sh/ruff/) for code formatting and linting, and [Ty](https://docs.astral.sh/ty/) for type checking.
+
+### Setup Development Environment
+
+```shell
+# Install UV (if not already installed)
+$ curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone the repository
+$ git clone https://github.com/dataplat/pgmob.git
+$ cd pgmob
+
+# Install dependencies with all extras
+$ uv sync --all-extras
+```
+
+### Running Tests
+
+```shell
+# Run all tests
+$ uv run pytest
+
+# Run with coverage
+$ uv run pytest --cov=pgmob --cov-report=html
+
+# Run specific test markers
+$ uv run pytest -m unit
+$ uv run pytest -m integration
+```
+
+### Code Quality
+
+```shell
+# Format code with Ruff
+$ uv run ruff format .
+
+# Lint code with Ruff
+$ uv run ruff check --fix .
+
+# Type checking with ty
+$ uvx ty
+$ uv run ty check src/pgmob
 ```
 
 ## Documentation

@@ -1,7 +1,9 @@
 from unittest.mock import call
+
 import pytest
-from pgmob.sql import SQL, Identifier
+
 from pgmob import objects
+from pgmob.sql import SQL, Identifier
 
 
 @pytest.fixture
@@ -42,22 +44,22 @@ class TestTable:
         assert table.owner == tbl[1]
         assert table.schema == tbl[2]
         assert table.tablespace is None
-        assert table.row_security == False
+        assert not table.row_security
         assert table.oid == tbl[5]
         assert str(table) == f"Table('{_get_key(tbl)}')"
 
     def test_drop(self, cursor, table, pgmob_tester):
         table.drop()
-        pgmob_tester.assertSql(f"DROP TABLE ", cursor)
+        pgmob_tester.assertSql("DROP TABLE ", cursor)
         pgmob_tester.assertSql(table.name, cursor)
         pgmob_tester.assertSql(table.schema, cursor)
 
     def test_drop_cascade(self, cursor, table, pgmob_tester):
         table.drop(True)
-        pgmob_tester.assertSql(f"DROP TABLE ", cursor)
+        pgmob_tester.assertSql("DROP TABLE ", cursor)
         pgmob_tester.assertSql(table.name, cursor)
         pgmob_tester.assertSql(table.schema, cursor)
-        pgmob_tester.assertSql(f" CASCADE", cursor)
+        pgmob_tester.assertSql(" CASCADE", cursor)
 
     def test_refresh(self, table, table_cursor, table_tuples, pgmob_tester):
         tbl = table_tuples[0]

@@ -1,4 +1,5 @@
 import pytest
+
 from pgmob import objects
 
 
@@ -8,7 +9,7 @@ def procedures(psql, db, cluster_db, schema):
     func_list = ["public.tmpzzz", f"{schema}.tmpzzz"]
     for f in func_list:
         assert (
-            psql(f"CREATE FUNCTION {f} (a int) RETURNS int" " AS 'SELECT $1 a' LANGUAGE SQL", db=db).exit_code
+            psql(f"CREATE FUNCTION {f} (a int) RETURNS int AS 'SELECT $1 a' LANGUAGE SQL", db=db).exit_code
             == 0
         )
         assert psql(f"CREATE FUNCTION {f} () RETURNS int AS 'SELECT 1' LANGUAGE SQL", db=db).exit_code == 0

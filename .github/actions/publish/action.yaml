@@ -1,4 +1,4 @@
-name: Poetry Publish
+name: UV Publish
 description: Publish package to PyPI
 branding:
   icon: package
@@ -9,21 +9,9 @@ inputs:
     description: Python version
     required: false
     default: 3.9
-  POETRY_VERSION:
-    description: Poetry version
-    required: false
-    default: 1.3.2
-  PYPI_USERNAME:
-    description: PyPI username. '__token__' by default
-    required: false
-    default: "__token__"
   PYPI_TOKEN:
     description: PyPI API token.
     required: true
-  PYPI_REGISTRY:
-    description: PYPI registry address
-    required: false
-    default: https://upload.pypi.org/legacy/
 
 runs:
   using: "composite"
@@ -33,23 +21,23 @@ runs:
       with:
         ref: main
 
-    - name: Install poetry
-      run: pip install poetry==${{ inputs.POETRY_VERSION }}
+    - name: Install UV
+      run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      shell: bash
+
+    - name: Add UV to PATH
+      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
       shell: bash
 
     - name: Setup python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ inputs.PYTHON_VERSION }}
-        cache: 'poetry'
 
-    - name: Install poetry dependencies
-      run: |
-        poetry install -n
+    - name: Build package
+      run: uv build
       shell: bash
 
-    - name: Build and Publish
-      run: |
-        poetry config repositories.publish ${{ inputs.PYPI_REGISTRY }}
-        poetry publish -n -u "${{ inputs.PYPI_USERNAME }}" -p "${{ inputs.PYPI_TOKEN }}" -r publish --build
+    - name: Publish to PyPI
+      run: uv publish --token "${{ inputs.PYPI_TOKEN }}"
       shell: bash

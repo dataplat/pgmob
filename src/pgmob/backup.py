@@ -14,16 +14,18 @@ Example:
     >>> file_restore = FileRestore(cluster=cluster)
     >>> file_restore.restore(database=new_db, path="/tmp/db.bak")
 """
-from typing import List, Optional
+
 import logging
 from pathlib import Path
-from .os import ShellEnv, _BaseShellEnv
+from typing import List, Optional
+
 from . import cluster
+from .os import ShellEnv, _BaseShellEnv
 
 LOGGER = logging.getLogger(__name__)
 
 
-class _CommonOptions(object):
+class _CommonOptions:
     """Common backup/restore options"""
 
     def __init__(self, shell: Optional[_BaseShellEnv] = None, **kwargs) -> None:
@@ -549,7 +551,7 @@ class RestoreOptions(_CommonOptions):
         return options
 
 
-class _BackupRestoreOperation(object):
+class _BackupRestoreOperation:
     """Base backup/restore operation class that implements binary execution.
 
     Args:

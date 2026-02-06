@@ -3,8 +3,8 @@ classes are eventually decoded by adapters into SQL statements with appropriate 
 """
 
 import string
-
-from typing import Generator, List, Sequence, Union
+from collections.abc import Generator, Sequence
+from typing import List, Union
 
 
 class Composable:
@@ -79,7 +79,7 @@ class Composed(Composable):
             elif isinstance(part, _Singleton):
                 yield part
             else:
-                raise TypeError("Unexpected type " "%s" "", part.__class__.__name__)
+                raise TypeError("Unexpected type %s", part.__class__.__name__)
 
     def __iter__(self) -> Generator[_Singleton, None, None]:
         for part in iter(self._parts):

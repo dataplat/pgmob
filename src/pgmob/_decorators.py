@@ -1,13 +1,13 @@
 import functools
 import inspect
-from typing import Any, Callable, TypeVar
 import warnings
+from typing import Any, Callable, TypeVar
 
 T = TypeVar("T")
 LAZY_PREFIX = "_pgmlazy_"
 
 
-class RefreshProperty(object):
+class RefreshProperty:
     """An instance of this class marks a lazy-evaluated property as requiring a refresh"""
 
     def __eq__(self, __o: object) -> bool:
@@ -53,7 +53,7 @@ def deprecated(instructions):
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            message = "Call to deprecated function {}. {}".format(func.__name__, instructions)
+            message = f"Call to deprecated function {func.__name__}. {instructions}"
 
             frame = inspect.currentframe().f_back
 

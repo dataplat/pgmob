@@ -1,10 +1,11 @@
 """Postgresql view objects"""
-from typing import TYPE_CHECKING, Optional
-from ..sql import SQL
-from ..errors import *
-from .. import util
-from . import generic
 
+from typing import TYPE_CHECKING, Optional
+
+from .. import util
+from ..errors import *
+from ..sql import SQL
+from . import generic
 
 if TYPE_CHECKING:
     from ..cluster import Cluster

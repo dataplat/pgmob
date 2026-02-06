@@ -1,12 +1,13 @@
 """Postgresql roles"""
+
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
-from ..adapters import AdapterError
-from ..sql import SQL, Composable, Literal, Identifier
-from ..errors import *
-from .. import util
-from . import generic
 
+from .. import util
+from ..adapters import AdapterError
+from ..errors import *
+from ..sql import SQL, Composable, Identifier, Literal
+from . import generic
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
@@ -198,7 +199,7 @@ class Role(generic._DynamicObject, generic._CollectionChild):
         if password:
             sql += " PASSWORD {password}"
             params["password"] = Literal(password)
-        for permission in permission_list.keys():
+        for permission in permission_list:
             sql += " " + (permission if permission_list[permission] else f"NO{permission}")
         if self.connection_limit is not None:
             sql += " CONNECTION LIMIT {limit}"

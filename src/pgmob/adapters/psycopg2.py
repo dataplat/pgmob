@@ -1,10 +1,13 @@
-from typing import Any, Callable, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any, Callable, Optional, Union
+
 import psycopg2  # type: ignore
-import psycopg2.sql  # type: ignore
-import psycopg2.extras  # type: ignore
 import psycopg2.extensions  # type: ignore
-from . import ProgrammingError, AdapterError, NoResultsToFetch
-from ..sql import SQL, Identifier, Literal, Composable
+import psycopg2.extras  # type: ignore
+import psycopg2.sql  # type: ignore
+
+from ..sql import SQL, Composable, Identifier, Literal
+from . import AdapterError, NoResultsToFetch, ProgrammingError
 from .base import BaseAdapter, BaseCursor, BaseLargeObject
 
 

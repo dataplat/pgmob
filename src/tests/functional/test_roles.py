@@ -1,5 +1,6 @@
-from datetime import date, datetime
 import re
+from datetime import date
+
 import pytest
 
 from pgmob import objects
@@ -25,7 +26,7 @@ def roles(cluster, tmp_role):
 
 
 class TestFunctionalRoles:
-    role_query = "SELECT {field} FROM pg_catalog.pg_roles" " WHERE rolname = '{role}'"
+    role_query = "SELECT {field} FROM pg_catalog.pg_roles WHERE rolname = '{role}'"
 
     def test_roles(self, roles: objects.RoleCollection, tmp_role: str):
         day = date.today()

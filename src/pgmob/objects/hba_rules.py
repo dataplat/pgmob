@@ -1,14 +1,15 @@
 """HBA rules as collection of strings that ignore whitespace on comparison"""
+
 import collections
 import re
-from typing import Any, Iterable, List, Optional, Tuple, Union, TYPE_CHECKING
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from ..adapters import ProgrammingError
-from ..sql import SQL, Literal
 from ..adapters.base import BaseCursor
 from ..errors import *
+from ..sql import SQL, Literal
 from . import generic
-
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
@@ -56,7 +57,7 @@ class HBARule(str):
             if i == 4:
                 if field_map["type"] == "local":
                     auth_options.append(fields[i])
-                elif re.match("\\d{1,3}\.\\d{1,3}\.\\d{1,3}\\.\\d{1,3}", fields[i]):
+                elif re.match("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}", fields[i]):
                     field_map["mask"] = fields[i]
                 else:
                     field_map["auth_method"] = fields[i]
@@ -74,7 +75,7 @@ class HBARule(str):
         if name == "auth_options":
             return " ".join(auth_options)
         else:
-            return field_map.get(name, None)
+            return field_map.get(name)
 
     @property
     def fields(self) -> List[str]:

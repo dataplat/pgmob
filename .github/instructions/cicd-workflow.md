@@ -1,0 +1,1 @@
+../../.windsurf/rules/cicd-workflow.md

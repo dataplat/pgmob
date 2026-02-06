@@ -1,10 +1,11 @@
 """Postgresql procedure objects"""
-from typing import TYPE_CHECKING, Dict, List, Optional, Type
-from ..sql import SQL, Identifier, Composable
-from ..errors import *
-from .. import util
-from . import generic
 
+from typing import TYPE_CHECKING, Dict, List, Optional, Type
+
+from .. import util
+from ..errors import *
+from ..sql import SQL, Composable, Identifier
+from . import generic
 
 if TYPE_CHECKING:
     from ..cluster import Cluster

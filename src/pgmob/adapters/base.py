@@ -1,5 +1,7 @@
-from typing import Any, Sequence, Union
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
+from collections.abc import Sequence
+from typing import Any, Union
+
 from ..sql import Composable
 
 

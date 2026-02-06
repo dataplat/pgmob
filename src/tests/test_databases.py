@@ -1,7 +1,9 @@
-import pytest
 from unittest.mock import call
-from pgmob.sql import SQL, Identifier
+
+import pytest
+
 from pgmob import objects
+from pgmob.sql import SQL, Identifier
 
 
 @pytest.fixture

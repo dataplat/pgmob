@@ -1,8 +1,8 @@
-from typing import Sequence
 import pytest
-from pgmob.sql import SQL, Identifier, Literal
+
 from pgmob.adapters import ProgrammingError, detect_adapter
 from pgmob.adapters.base import BaseAdapter, BaseCursor, BaseLargeObject
+from pgmob.sql import SQL, Identifier, Literal
 
 ADAPTERS = ["psycopg2"]
 
@@ -137,10 +137,9 @@ class TestLargeObject:
             adapter.commit()
         assert self.get_current(psql, db, lo_id) == ""
 
-        with pytest.raises(Exception):
-            with adapter.lobject(lo_id, "r") as lobject_r:
-                with pytest.raises(Exception):
-                    lobject_r.unlink()
+        with pytest.raises(Exception), adapter.lobject(lo_id, "r") as lobject_r:
+            with pytest.raises(Exception):
+                lobject_r.unlink()
 
     def test_read(self, adapter, lo_ids_factory, db):
         lo_id = lo_ids_factory(db=db)[0]
@@ -157,10 +156,9 @@ class TestLargeObject:
             adapter.commit()
         assert self.get_current(psql, db, lo_id) == "new data"
 
-        with pytest.raises(Exception):
-            with adapter.lobject(lo_id, "r") as lobject_r:
-                with pytest.raises(Exception):
-                    lobject_r.write(b"new data2")
+        with pytest.raises(Exception), adapter.lobject(lo_id, "r") as lobject_r:
+            with pytest.raises(Exception):
+                lobject_r.write(b"new data2")
 
     def test_truncate(self, adapter, lo_ids_factory, psql, db):
         lo_id = lo_ids_factory(db=db)[0]
@@ -174,10 +172,9 @@ class TestLargeObject:
             adapter.commit()
         assert self.get_current(psql, db, lo_id) == ""
 
-        with pytest.raises(Exception):
-            with adapter.lobject(lo_id, "r") as lobject_r:
-                with pytest.raises(Exception):
-                    lobject_r.truncate()
+        with pytest.raises(Exception), adapter.lobject(lo_id, "r") as lobject_r:
+            with pytest.raises(Exception):
+                lobject_r.truncate()
 
 
 class TestAdapter:

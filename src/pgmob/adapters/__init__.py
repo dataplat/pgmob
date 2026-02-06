@@ -1,9 +1,8 @@
-"""Adapters are wrappers around SQL Providers, which translate internal module syntax into the proper Provider syntax
-"""
+"""Adapters are wrappers around SQL Providers, which translate internal module syntax into the proper Provider syntax"""
 
 from typing import TYPE_CHECKING
-from .errors import *
 
+from .errors import *
 
 ADAPTERS = [(".psycopg2", "Psycopg2Adapter")]
 """Use the following variable to register adapters for autodiscovery.

@@ -1,10 +1,11 @@
 """Database objects. Represent databases of the Postgres cluster."""
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
-from ..sql import SQL, Composable, Identifier, Literal
-from ..errors import *
-from .. import util
-from . import generic
 
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+
+from .. import util
+from ..errors import *
+from ..sql import SQL, Composable, Identifier, Literal
+from . import generic
 
 if TYPE_CHECKING:
     from ..cluster import Cluster

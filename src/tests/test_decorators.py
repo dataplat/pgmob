@@ -1,5 +1,4 @@
-from pgmob._decorators import lazy_property, get_lazy_property, LAZY_PREFIX
-from dataclasses import dataclass, field
+from pgmob._decorators import get_lazy_property, lazy_property
 
 
 def test_lazy_property():

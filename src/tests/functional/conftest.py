@@ -1,11 +1,13 @@
-from typing import Callable
-from types import ModuleType
-from dataclasses import dataclass
-import pytest
-import docker
 import os
 import time
+from dataclasses import dataclass
+from types import ModuleType
+from typing import Callable
+
+import docker
+import pytest
 from docker.types import ContainerSpec
+
 from pgmob.cluster import Cluster
 
 

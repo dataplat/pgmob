@@ -1,7 +1,9 @@
 from unittest.mock import call
+
 import pytest
-from pgmob.sql import SQL, Identifier
+
 from pgmob import objects
+from pgmob.sql import SQL, Identifier
 
 
 @pytest.fixture
@@ -55,14 +57,14 @@ class TestSequence:
 
     def test_drop(self, cursor, sequence, pgmob_tester):
         sequence.drop()
-        pgmob_tester.assertSql(f"DROP SEQUENCE ", cursor)
+        pgmob_tester.assertSql("DROP SEQUENCE ", cursor)
         pgmob_tester.assertSql(sequence.name, cursor)
         pgmob_tester.assertSql(sequence.schema, cursor)
 
     def test_drop_cascade(self, cursor, sequence, pgmob_tester):
         sequence.drop(True)
-        pgmob_tester.assertSql(f"DROP SEQUENCE ", cursor)
-        pgmob_tester.assertSql(f" CASCADE", cursor)
+        pgmob_tester.assertSql("DROP SEQUENCE ", cursor)
+        pgmob_tester.assertSql(" CASCADE", cursor)
         pgmob_tester.assertSql(sequence.name, cursor)
         pgmob_tester.assertSql(sequence.schema, cursor)
 

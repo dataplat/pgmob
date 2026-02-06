@@ -1,10 +1,11 @@
 """Schema objects. Represents schemas on the Postgres cluster"""
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
-from ..sql import SQL, Composable, Identifier
-from ..errors import *
-from .. import util
-from . import generic
 
+from typing import TYPE_CHECKING, Dict, Optional, Union
+
+from .. import util
+from ..errors import *
+from ..sql import SQL, Composable, Identifier
+from . import generic
 
 if TYPE_CHECKING:
     from ..cluster import Cluster

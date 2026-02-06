@@ -1,6 +1,6 @@
 from unittest.mock import call
 
-from pgmob.backup import FileBackup, FileRestore, GCPBackup, GCPRestore, BackupOptions, RestoreOptions
+from pgmob.backup import BackupOptions, FileBackup, FileRestore, GCPBackup, GCPRestore, RestoreOptions
 
 
 class TestBackup:
@@ -230,9 +230,7 @@ class TestRestore:
         restore.options.set_role = "mahrole"
         restore.restore(database="foo", path="/tmp/foo")
         cluster.run_os_command.assert_called_with(
-            command=(
-                'pg_restore --schema-only --table="a" --table="b"' ' --role="mahrole" -d "foo" "/tmp/foo"'
-            )
+            command=('pg_restore --schema-only --table="a" --table="b" --role="mahrole" -d "foo" "/tmp/foo"')
         )
 
     def test_file_restore_params(self, cluster):

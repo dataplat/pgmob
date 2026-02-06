@@ -1,16 +1,18 @@
 ARG PYTHON_VERSION=3.10-bullseye
 FROM python:$PYTHON_VERSION
-ARG POETRY_VERSION=1.3.2
-ARG POETRY_EXTRAS=psycopg2
+ARG UV_EXTRAS=psycopg2-binary
 
 WORKDIR /opt/pgmob
 
-RUN pip install poetry==$POETRY_VERSION
-RUN poetry config virtualenvs.create false
+# Install UV
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
 
+# Copy project files
 COPY ./src ./src/
-COPY poetry.lock .
+COPY uv.lock .
 COPY pyproject.toml .
 COPY *.md ./
 
-RUN poetry install -E $POETRY_EXTRAS
+# Install dependencies with UV
+RUN uv sync --extra $UV_EXTRAS --extra dev --no-dev

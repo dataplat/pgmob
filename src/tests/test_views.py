@@ -1,7 +1,9 @@
 from unittest.mock import call
+
 import pytest
-from pgmob.sql import SQL, Identifier
+
 from pgmob import objects
+from pgmob.sql import SQL, Identifier
 
 
 @pytest.fixture
@@ -46,16 +48,16 @@ class TestView:
 
     def test_drop(self, cursor, view, pgmob_tester):
         view.drop()
-        pgmob_tester.assertSql(f"DROP VIEW ", cursor)
+        pgmob_tester.assertSql("DROP VIEW ", cursor)
         pgmob_tester.assertSql(view.name, cursor)
         pgmob_tester.assertSql(view.schema, cursor)
 
     def test_drop_cascade(self, cursor, view, pgmob_tester):
         view.drop(True)
-        pgmob_tester.assertSql(f"DROP VIEW ", cursor)
+        pgmob_tester.assertSql("DROP VIEW ", cursor)
         pgmob_tester.assertSql(view.name, cursor)
         pgmob_tester.assertSql(view.schema, cursor)
-        pgmob_tester.assertSql(f" CASCADE", cursor)
+        pgmob_tester.assertSql(" CASCADE", cursor)
 
     def test_refresh(self, view, view_cursor, view_tuples, pgmob_tester):
         v = view_tuples[0]

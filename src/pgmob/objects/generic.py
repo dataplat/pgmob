@@ -1,12 +1,11 @@
 """Internal generic objects shared between other objects."""
 
-from abc import abstractmethod
+from collections.abc import Iterator
 from enum import Enum
-import re
-from typing import Any, Dict, Generic, Iterator, List, Optional, TYPE_CHECKING, Tuple, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar
+
 from pgmob import errors
-from pgmob._decorators import deprecated
-from pgmob.sql import SQL, Identifier, Composable
+from pgmob.sql import SQL, Composable, Identifier
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
@@ -15,7 +14,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-class _BasePostgresObject(object):
+class _BasePostgresObject:
     """Base class for any Postgres object with oid.
 
     Args:
@@ -70,7 +69,7 @@ class _BaseObjectMapper(Generic[T]):
         return obj
 
 
-class _ClusterBound(object):
+class _ClusterBound:
     """Object that is attached to a Cluster. Implements cluster retrieval internal function"""
 
     def __init__(self, cluster: "Cluster" = None):
@@ -101,7 +100,7 @@ class _ClusterBound(object):
         self._cluster = value
 
 
-class Fqn(object):
+class Fqn:
     """Fully qualified object name. Defined by schema name (optional) and object name.
 
     Args:
@@ -269,7 +268,7 @@ class _BaseCollection(_ClusterBound, SortedMappedCollection[T]):
     #     raise NotImplementedError()
 
 
-class _CollectionChild(object):
+class _CollectionChild:
     """Defines an object belonging to a Postgres collection"""
 
     def __init__(self, parent: _BaseCollection = None):
@@ -280,7 +279,7 @@ class _CollectionChild(object):
         return self._parent
 
 
-class _ObjectChange(object):
+class _ObjectChange:
     def __init__(self, obj: _DynamicObject, task, *args, **kwargs):
         if not isinstance(obj, _DynamicObject):
             raise AttributeError("This object class is not supported")

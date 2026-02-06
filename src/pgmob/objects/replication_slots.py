@@ -1,9 +1,11 @@
 """Replication slots. Represent replication slots of the Postgres cluster."""
+
 from typing import TYPE_CHECKING, Optional, Union
-from ..adapters import AdapterError
-from ..sql import SQL, Literal, Composable
-from ..errors import PostgresError
+
 from .. import util
+from ..adapters import AdapterError
+from ..errors import PostgresError
+from ..sql import SQL, Composable, Literal
 from . import generic
 
 if TYPE_CHECKING:

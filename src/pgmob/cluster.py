@@ -8,22 +8,22 @@ server using the adapter, such as ``psycopg2``. A connected Cluster object gives
 - Execute ad-hoc SQL queries and shell commands
 - Run backup/restore operations
 """
+
 import logging
 from typing import Any, Callable, List, Optional, Tuple, Union
 
-from .os import _BaseShellEnv, ShellEnv, OSCommandResult
-from ._decorators import RefreshProperty, LAZY_PREFIX, get_lazy_property
-from .errors import *
-from .adapters import detect_adapter, NoResultsToFetch, AdapterError
-from .sql import SQL, Composable, Identifier, Literal
+from . import objects, util
+from ._decorators import LAZY_PREFIX, RefreshProperty, get_lazy_property
+from .adapters import AdapterError, NoResultsToFetch, detect_adapter
 from .adapters.base import BaseAdapter, BaseCursor
-from . import objects
-from . import util
+from .errors import *
+from .os import OSCommandResult, ShellEnv, _BaseShellEnv
+from .sql import SQL, Composable, Identifier, Literal
 
 LOGGER = logging.getLogger(__name__)
 
 
-class _NoAutocommitContextManager(object):
+class _NoAutocommitContextManager:
     def __init__(self, cluster: "Cluster"):
         self.cluster = cluster
         self.autocommit = self.cluster.adapter.get_autocommit()
@@ -39,7 +39,7 @@ class _NoAutocommitContextManager(object):
             self.cluster.adapter.set_autocommit(True)
 
 
-class Cluster(object):
+class Cluster:
     """Provides a management interface for postgres cluster configuration.
 
     Args:
@@ -80,7 +80,7 @@ class Cluster(object):
         adapter: BaseAdapter = None,
         shell: Optional[_BaseShellEnv] = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         self.shell = shell if shell else ShellEnv()
         self.adapter: BaseAdapter = adapter if adapter else detect_adapter()
@@ -178,7 +178,7 @@ class Cluster(object):
     def execute(
         self, query: Union[Composable, str], params: Union[Tuple[Any], Any] = None
     ) -> List[Tuple[Any]]:
-        """Execute a query against Postgres server. Transaction would be automatically committed upon completion.
+        r"""Execute a query against Postgres server. Transaction would be automatically committed upon completion.
 
         Args:
             query (Union[Composable, str]): Query text or a Composable object

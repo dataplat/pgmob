@@ -1,0 +1,1 @@
+../../.windsurf/rules/security-guidelines.md
