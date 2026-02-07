@@ -4,7 +4,7 @@
         "dockerfile": "Dockerfile",
         "context": "..",
         "args": {
-            "PYTHON_VERSION": "3.11-bullseye"
+            "PYTHON_VERSION": "3.13-bookworm"
         }
     },
     "customizations": {
