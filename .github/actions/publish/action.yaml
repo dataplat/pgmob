@@ -9,6 +9,10 @@ inputs:
     description: Python version
     required: false
     default: "3.13"
+  PUBLISH_INDEX:
+    description: Named index from pyproject.toml to publish to (pypi or test-pypi)
+    required: false
+    default: "pypi"
   PYPI_TOKEN:
     description: PyPI API token.
     required: true
@@ -39,5 +43,5 @@ runs:
       shell: bash
 
     - name: Publish to PyPI
-      run: uv publish --token "${{ inputs.PYPI_TOKEN }}"
+      run: uv publish --index "${{ inputs.PUBLISH_INDEX }}" --token "${{ inputs.PYPI_TOKEN }}"
       shell: bash
