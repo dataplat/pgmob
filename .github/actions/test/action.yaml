@@ -49,6 +49,7 @@ runs:
         docker run --rm -i --network ${{ inputs.CONTAINER_NETWORK}}
         -e PGMOB_IMAGE=postgres:${{ inputs.POSTGRES_VERSION }}
         -e PGMOB_CONTAINER_NETWORK=${{ inputs.CONTAINER_NETWORK}}
+        -e PGMOB_HOST=pgmob-postgres
         -v /var/run/docker.sock:/var/run/docker.sock
         pgmobtest uv run pytest -vv
       shell: bash
