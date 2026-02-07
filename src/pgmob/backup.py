@@ -598,13 +598,13 @@ class _BackupRestoreOperation:
             str: stdin and stdout of executed command
         """
         full_path = self.shell.join_path(self.base_path, path)
-        params = dict(
-            database=database,
-            path=full_path,
-            options=" ".join(self.options.render_args()),
-            binary=self.binary,
-            filename=Path(full_path).name,
-        )
+        params = {
+            "database": database,
+            "path": full_path,
+            "options": " ".join(self.options.render_args()),
+            "binary": self.binary,
+            "filename": Path(full_path).name,
+        }
         self._exec_commands(self.on_start_commands, **params)
         try:
             result = self._exec_commands([self.command], **params)
@@ -759,7 +759,7 @@ class FileRestore(_BackupRestoreOperation):
         cluster: cluster.Cluster,
         base_path: str = "",
         binary_path: str = "pg_restore",
-        options: RestoreOptions = None,
+        options: Optional[RestoreOptions] = None,
         shell: Optional[_BaseShellEnv] = None,
     ):
         super().__init__(

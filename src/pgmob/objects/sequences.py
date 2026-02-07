@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Optional
 
 from .. import util
-from ..errors import *
+from ..errors import PostgresError
 from ..sql import SQL, Literal
 from . import generic
 
@@ -42,9 +42,9 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
         self,
         name: str,
         schema: str = "public",
-        owner: str = None,
-        cluster: "Cluster" = None,
-        parent: "SequenceCollection" = None,
+        owner: Optional[str] = None,
+        cluster: Optional["Cluster"] = None,
+        parent: Optional["SequenceCollection"] = None,
         oid: Optional[int] = None,
     ):
         """Initialize a new Sequence object"""
@@ -95,7 +95,7 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
     @min_value.setter
     def min_value(self, value: int):
         if self._min_value != value:
-            if value == None:
+            if value is None:
                 sql = SQL("ALTER SEQUENCE {fqn} NO MINVALUE").format(fqn=self._sql_fqn())
             else:
                 sql = SQL("ALTER SEQUENCE {fqn} MINVALUE {value}").format(
@@ -111,7 +111,7 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
     @max_value.setter
     def max_value(self, value: int):
         if self._max_value != value:
-            if value == None:
+            if value is None:
                 sql = SQL("ALTER SEQUENCE {fqn} NO MAXVALUE").format(fqn=self._sql_fqn())
             else:
                 sql = SQL("ALTER SEQUENCE {fqn} MAXVALUE {value}").format(
@@ -202,10 +202,7 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
         Args:
             is_called (bool): set is_called flag
         """
-        if is_called:
-            sql = SQL("SELECT setval(%s, %s, true)")
-        else:
-            sql = SQL("SELECT setval(%s, %s)")
+        sql = SQL("SELECT setval(%s, %s, true)") if is_called else SQL("SELECT setval(%s, %s)")
         self.cluster.execute(sql, (self.oid, value))[0][0]
 
     def refresh(self):

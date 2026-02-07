@@ -41,8 +41,8 @@ class ReplicationSlot(generic._DynamicObject, generic._CollectionChild):
         self,
         name: str,
         plugin: str,
-        cluster: "Cluster" = None,
-        parent: "ReplicationSlotCollection" = None,
+        cluster: Optional["Cluster"] = None,
+        parent: Optional["ReplicationSlotCollection"] = None,
     ):
         """Initialize a new ReplicationSlot object"""
         super().__init__(cluster=cluster, name=name, kind="REPLICATION SLOT")

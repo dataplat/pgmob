@@ -216,7 +216,7 @@ def tablespace(psql, container):
 
 
 @pytest.fixture
-def connect(container, container_name, pg_password):
+def connect(container, hostname, pg_password):
     """Cluster object factory.
 
     Args:
@@ -229,7 +229,7 @@ def connect(container, container_name, pg_password):
         if not adapter:
             adapter = _psycopg2.Psycopg2Adapter(cursor_factory=None)
         return Cluster(
-            host=container_name,
+            host=hostname,
             port=5432,
             user="postgres",
             password=pg_password,

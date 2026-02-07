@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Optional
 
 from .. import util
-from ..errors import *
+from ..errors import PostgresError
 from ..sql import SQL
 from . import generic
 
@@ -34,9 +34,9 @@ class View(generic._DynamicObject, generic._CollectionChild):
         self,
         name: str,
         schema: str = "public",
-        owner: str = None,
-        cluster: "Cluster" = None,
-        parent: "ViewCollection" = None,
+        owner: Optional[str] = None,
+        cluster: Optional["Cluster"] = None,
+        parent: Optional["ViewCollection"] = None,
         oid: Optional[int] = None,
     ):
         """Initialize a new View object"""

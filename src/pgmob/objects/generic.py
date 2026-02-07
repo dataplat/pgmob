@@ -52,7 +52,7 @@ class _BaseObjectMapper(Generic[T]):
     def __init__(self, definition: tuple):
         self.definition = definition
 
-    def __getitem__(self, key: str) -> object:
+    def __getitem__(self, key: str) -> Any:
         return self.definition[self.attributes.index(key)]
 
     def map(self, obj: T) -> T:
@@ -72,7 +72,7 @@ class _BaseObjectMapper(Generic[T]):
 class _ClusterBound:
     """Object that is attached to a Cluster. Implements cluster retrieval internal function"""
 
-    def __init__(self, cluster: "Cluster" = None):
+    def __init__(self, cluster: Optional["Cluster"] = None):
         self._cluster = cluster
 
     @property
@@ -133,7 +133,7 @@ class _FqnObject(_BasePostgresObject, _ClusterBound):
         name: str,
         oid: Optional[int] = None,
         schema: Optional[str] = None,
-        cluster: "Cluster" = None,
+        cluster: Optional["Cluster"] = None,
     ):
         _BasePostgresObject.__init__(self, oid=oid)
         _ClusterBound.__init__(self, cluster=cluster)
@@ -173,7 +173,7 @@ class _DynamicObject(_FqnObject):
         name: str,
         oid: Optional[int] = None,
         schema: Optional[str] = None,
-        cluster: "Cluster" = None,
+        cluster: Optional["Cluster"] = None,
     ):
         super().__init__(kind=kind, name=name, schema=schema, cluster=cluster, oid=oid)
         self._changes = _ChangeCollection()
@@ -193,16 +193,16 @@ class _DynamicObject(_FqnObject):
 
 
 def _set_ephemeral_attr(obj: _DynamicObject, attr: str, value: Any):
-    params = dict(
-        fqn=obj._sql_fqn(),
-        value=Identifier(value),
-    )
-    stmt_map = dict(
-        owner=SQL(f"ALTER {obj._kind} {{fqn}} OWNER TO {{value}}").format(**params),
-        name=SQL(f"ALTER {obj._kind} {{fqn}} RENAME TO {{value}}").format(**params),
-        schema=SQL(f"ALTER {obj.kind} {{fqn}} SET SCHEMA {{value}}").format(**params),
-        tablespace=SQL(f"ALTER {obj.kind} {{fqn}} SET TABLESPACE {{value}}").format(**params),
-    )
+    params = {
+        "fqn": obj._sql_fqn(),
+        "value": Identifier(value),
+    }
+    stmt_map = {
+        "owner": SQL(f"ALTER {obj._kind} {{fqn}} OWNER TO {{value}}").format(**params),
+        "name": SQL(f"ALTER {obj._kind} {{fqn}} RENAME TO {{value}}").format(**params),
+        "schema": SQL(f"ALTER {obj.kind} {{fqn}} SET SCHEMA {{value}}").format(**params),
+        "tablespace": SQL(f"ALTER {obj.kind} {{fqn}} SET TABLESPACE {{value}}").format(**params),
+    }
 
     if getattr(obj, f"_{attr}") != value:
         obj._changes[attr] = _SQLChange(obj=obj, sql=stmt_map[attr])
@@ -271,7 +271,7 @@ class _BaseCollection(_ClusterBound, SortedMappedCollection[T]):
 class _CollectionChild:
     """Defines an object belonging to a Postgres collection"""
 
-    def __init__(self, parent: _BaseCollection = None):
+    def __init__(self, parent: Optional[_BaseCollection] = None):
         self._parent = parent
 
     @property
@@ -294,7 +294,7 @@ class _ObjectChange:
 
 
 class _SQLChange(_ObjectChange):
-    def __init__(self, obj: _DynamicObject, sql: Composable, params: tuple = None):
+    def __init__(self, obj: _DynamicObject, sql: Composable, params: Optional[tuple] = None):
         def task():
             obj.cluster.execute(sql, params)
 

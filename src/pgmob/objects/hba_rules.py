@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 from ..adapters import ProgrammingError
 from ..adapters.base import BaseCursor
-from ..errors import *
+from ..errors import PostgresError
 from ..sql import SQL, Literal
 from . import generic
 
@@ -164,7 +164,7 @@ class HBARuleCollection(collections.UserList[HBARule], generic._ClusterBound):
         lines = self.cluster.execute_with_cursor(task)
         self.data.extend([HBARule(x) for x in lines])
 
-    def __contains__(self, o: object) -> bool:
+    def __contains__(self, o: object) -> bool:  # type: ignore[override]
         return HBARule(o) in self.data
 
     def __iadd__(self, other: Iterable[HBARule]):
@@ -175,7 +175,7 @@ class HBARuleCollection(collections.UserList[HBARule], generic._ClusterBound):
         self.data.extend([HBARule(r) for r in other])
         return self
 
-    def extend(self, item: Iterable[HBARule]):
+    def extend(self, item: Iterable[HBARule]):  # type: ignore[override]
         """Add multiple HBA rules to the collection
 
         Args:
@@ -207,7 +207,7 @@ class HBARuleCollection(collections.UserList[HBARule], generic._ClusterBound):
         """
         return self.data.index(HBARule(item), *args)
 
-    def insert(self, index: int, item: Union[str, HBARule]):
+    def insert(self, index: int, item: Union[str, HBARule]):  # type: ignore[override]
         """Insert an HBA rule into the rule collection with a certain index
 
         Args:

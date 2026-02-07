@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Dict, Optional, Union
 
 from .. import util
-from ..errors import *
+from ..errors import PostgresError
 from ..sql import SQL, Composable, Identifier
 from . import generic
 
@@ -31,9 +31,9 @@ class Schema(generic._DynamicObject, generic._CollectionChild):
     def __init__(
         self,
         name: str,
-        owner: str = None,
-        cluster: "Cluster" = None,
-        parent: "SchemaCollection" = None,
+        owner: Optional[str] = None,
+        cluster: Optional["Cluster"] = None,
+        parent: Optional["SchemaCollection"] = None,
         oid: Optional[int] = None,
     ):
         super().__init__(cluster=cluster, name=name, kind="SCHEMA", oid=oid)
@@ -137,7 +137,7 @@ class SchemaCollection(generic._BaseCollection[Schema]):
     def new(
         self,
         name: str,
-        owner: str = None,
+        owner: Optional[str] = None,
     ) -> Schema:
         """Create a schema object on the current Postgres cluster. The object
         is created ephemeral and either needs to be added to the schema collection,

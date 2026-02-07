@@ -15,9 +15,13 @@ applyTo:
 
 # Documentation Standards for PGMob
 
-## Files to Never Reference
+## Task completion documents
 
-**CRITICAL**: Never reference or link temporary LLM activity report files in official documentation. This includes any files ending with `_COMPLETE.md`, `_SUMMARY.md`, `_PLAN.md`, `_REPORT.md`. These are temporary working documents created during development and will not be committed to the repository.
+NEVER create LLM activity report files in the repository, other than plans. Show the results in the chat instead.
+
+This includes any files ending with `_COMPLETE.md`, `_SUMMARY.md`, `_PLAN.md`, `_REPORT.md`. These are temporary working documents created during development and will not be committed to the repository.
+
+**CRITICAL**: Never reference or link temporary LLM activity report files in official documentation.
 
 ## Official Documentation Files
 

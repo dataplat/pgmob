@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Optional
 
 from .. import util
-from ..errors import *
+from ..errors import PostgresError
 from ..sql import SQL, Identifier
 from . import generic
 
@@ -36,9 +36,9 @@ class Table(generic._DynamicObject, generic._CollectionChild):
         self,
         name: str,
         schema: str = "public",
-        owner: str = None,
-        cluster: "Cluster" = None,
-        parent: "TableCollection" = None,
+        owner: Optional[str] = None,
+        cluster: Optional["Cluster"] = None,
+        parent: Optional["TableCollection"] = None,
         oid: Optional[int] = None,
     ):
         """Initialize a new Table object"""

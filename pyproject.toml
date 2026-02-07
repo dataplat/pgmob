@@ -76,6 +76,11 @@ ignore = [
     "B008",  # do not perform function calls in argument defaults
     "B904",  # raise from
     "ARG002", # unused method argument
+    # TODO: Remove these when upgrading to Python 3.10+
+    # Python 3.9 requires `from __future__ import annotations` to use PEP 585 (list[str] instead of List[str])
+    # For now, keep using typing.List, typing.Dict, etc. for compatibility
+    "UP006", # Use PEP 585 (list instead of List) - requires Python 3.9+ with __future__ annotations
+    "UP035", # Import from typing instead of collections.abc - requires Python 3.9+ with __future__ annotations
 ]
 
 [tool.ruff.lint.per-file-ignores]

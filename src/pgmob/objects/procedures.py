@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Dict, List, Optional, Type
 
 from .. import util
-from ..errors import *
+from ..errors import PostgresError
 from ..sql import SQL, Composable, Identifier
 from . import generic
 
@@ -79,11 +79,11 @@ class _BaseProcedure(generic._DynamicObject, generic._CollectionChild):
         name: str,
         kind: str,
         schema: str = "public",
-        argument_types: List[str] = None,
+        argument_types: Optional[List[str]] = None,
         oid: Optional[int] = None,
-        parent: "ProcedureCollection" = None,
-        owner: str = None,
-        cluster: "Cluster" = None,
+        parent: Optional["ProcedureCollection"] = None,
+        owner: Optional[str] = None,
+        cluster: Optional["Cluster"] = None,
         language: str = "sql",
         security_definer: bool = False,
         strict: bool = False,
@@ -217,7 +217,8 @@ class Procedure(_BaseProcedure):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__(kind=ProcedureKind.PROCEDURE.name, *args, **kwargs)
+        kwargs["kind"] = ProcedureKind.PROCEDURE.name
+        super().__init__(*args, **kwargs)
 
 
 class Function(_BaseProcedure):
@@ -251,7 +252,8 @@ class Function(_BaseProcedure):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__(kind=ProcedureKind.FUNCTION.name, *args, **kwargs)
+        kwargs["kind"] = ProcedureKind.FUNCTION.name
+        super().__init__(*args, **kwargs)
 
 
 class WindowFunction(_BaseProcedure):
@@ -285,7 +287,8 @@ class WindowFunction(_BaseProcedure):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__(kind=ProcedureKind.WINDOW_FUNCTION.name, *args, **kwargs)
+        kwargs["kind"] = ProcedureKind.WINDOW_FUNCTION.name
+        super().__init__(*args, **kwargs)
 
 
 class Aggregate(_BaseProcedure):
@@ -320,7 +323,8 @@ class Aggregate(_BaseProcedure):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__(kind=ProcedureKind.AGGREGATE.name, *args, **kwargs)
+        kwargs["kind"] = ProcedureKind.AGGREGATE.name
+        super().__init__(*args, **kwargs)
 
 
 class _ProcedureMapper(generic._BaseObjectMapper[_BaseProcedure]):
@@ -405,7 +409,8 @@ class ProcedureCollection(generic._BaseCollection[ProcedureVariations]):
                         proc_class = _procedure_kinds[kind]
                     except KeyError:
                         raise PostgresError(f"Unknown procedure kind: {kind}")
-                    proc = proc_class(
+                    # Subclasses provide 'kind' via kwargs in their __init__
+                    proc = proc_class(  # type: ignore[call-arg]
                         name=mapper["name"],
                         schema=mapper["schema"],
                         oid=mapper["oid"],

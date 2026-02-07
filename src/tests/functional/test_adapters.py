@@ -8,7 +8,7 @@ ADAPTERS = ["psycopg2"]
 
 
 @pytest.fixture()
-def adapter_factory(container, container_name, pg_password, db):
+def adapter_factory(container, hostname, pg_password, db):
     """Adapter factory.
 
     Args:
@@ -21,7 +21,7 @@ def adapter_factory(container, container_name, pg_password, db):
 
             adapter = _psycopg2.Psycopg2Adapter()
             adapter.connect(
-                host=container_name,
+                host=hostname,
                 port=5432,
                 user="postgres",
                 password=pg_password,
