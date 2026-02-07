@@ -130,3 +130,15 @@ show_missing = true
 
 [tool.coverage.html]
 directory = "htmlcov"
+
+[tool.uv.publish]
+# Define named indexes for publishing
+[[tool.uv.publish.index]]
+name = "pypi"
+url = "https://upload.pypi.org/legacy/"
+explicit = true
+
+[[tool.uv.publish.index]]
+name = "test-pypi"
+url = "https://test.pypi.org/legacy/"
+explicit = true

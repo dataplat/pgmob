@@ -23,9 +23,10 @@ jobs:
       - name: Publish to PyPI Test
         uses: ./.github/actions/publish
         with:
-          PYPI_REGISTRY: https://test.pypi.org/legacy/
+          PUBLISH_INDEX: test-pypi
           PYPI_TOKEN: ${{ secrets.PYPI_TEST_TOKEN }}
       - name: Publish to PyPI
         uses: ./.github/actions/publish
         with:
+          PUBLISH_INDEX: pypi
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
