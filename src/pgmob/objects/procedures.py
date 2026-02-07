@@ -1,6 +1,8 @@
 """Postgresql procedure objects"""
 
-from typing import TYPE_CHECKING, Dict, List, Optional, Type
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from .. import util
 from ..errors import PostgresError
@@ -55,7 +57,7 @@ class _BaseProcedure(generic._DynamicObject, generic._CollectionChild):
         strict (bool): Whether the function is strict
         volatility (Volatility): Volatility mode (IMMUTABLE/STABLE/VOLATILE)
         parallel_mode (ParallelSafety): Parallel mode (SAFE/RESTRICTED/UNSAFE)
-        argument_types (List[str]): A list of argument types, if any
+        argument_types (list[str]): A list of argument types, if any
         oid (int): Procedure OID
         parent (ProcedureCollection): parent collection
 
@@ -70,7 +72,7 @@ class _BaseProcedure(generic._DynamicObject, generic._CollectionChild):
         strict (bool): Whether the function is strict
         volatility (Volatility): Volatility mode (IMMUTABLE/STABLE/VOLATILE)
         parallel_mode (ParallelSafety): Parallel mode (SAFE/RESTRICTED/UNSAFE)
-        argument_types (List[str]): A list of argument types, if any
+        argument_types (list[str]): A list of argument types, if any
         oid (int): Procedure OID
     """
 
@@ -79,11 +81,11 @@ class _BaseProcedure(generic._DynamicObject, generic._CollectionChild):
         name: str,
         kind: str,
         schema: str = "public",
-        argument_types: Optional[List[str]] = None,
-        oid: Optional[int] = None,
-        parent: Optional["ProcedureCollection"] = None,
-        owner: Optional[str] = None,
-        cluster: Optional["Cluster"] = None,
+        argument_types: list[str] | None = None,
+        oid: int | None = None,
+        parent: ProcedureCollection | None = None,
+        owner: str | None = None,
+        cluster: Cluster | None = None,
         language: str = "sql",
         security_definer: bool = False,
         strict: bool = False,
@@ -130,7 +132,7 @@ class _BaseProcedure(generic._DynamicObject, generic._CollectionChild):
         return self._parallel_mode
 
     @property
-    def argument_types(self) -> Optional[List[str]]:
+    def argument_types(self) -> list[str] | None:
         return self._argument_types
 
     @property
@@ -161,7 +163,7 @@ class _BaseProcedure(generic._DynamicObject, generic._CollectionChild):
             mapper.map(self)
 
     @property
-    def owner(self) -> Optional[str]:
+    def owner(self) -> str | None:
         return self._owner
 
     @owner.setter
@@ -169,7 +171,7 @@ class _BaseProcedure(generic._DynamicObject, generic._CollectionChild):
         generic._set_ephemeral_attr(self, "owner", owner)
 
     @property
-    def schema(self) -> Optional[str]:
+    def schema(self) -> str | None:
         return self._schema
 
     @schema.setter
@@ -198,7 +200,7 @@ class Procedure(_BaseProcedure):
         strict (bool): Whether the procedure is strict
         volatility (Volatility): Volatility mode (IMMUTABLE/STABLE/VOLATILE)
         parallel_mode (ParallelSafety): Parallel mode (SAFE/RESTRICTED/UNSAFE)
-        argument_types (List[str]): A list of argument types, if any
+        argument_types (list[str]): A list of argument types, if any
         oid (int): Procedure OID
 
     Attributes:
@@ -212,7 +214,7 @@ class Procedure(_BaseProcedure):
         strict (bool): Whether the function is strict
         volatility (Volatility): Volatility mode (IMMUTABLE/STABLE/VOLATILE)
         parallel_mode (ParallelSafety): Parallel mode (SAFE/RESTRICTED/UNSAFE)
-        argument_types (List[str]): A list of argument types, if any
+        argument_types (list[str]): A list of argument types, if any
         oid (int): Procedure OID
     """
 
@@ -234,7 +236,7 @@ class Function(_BaseProcedure):
         strict (bool): Whether the function is strict
         volatility (Volatility): Volatility mode (IMMUTABLE/STABLE/VOLATILE)
         parallel_mode (ParallelSafety): Parallel mode (SAFE/RESTRICTED/UNSAFE)
-        argument_types (List[str]): A list of argument types, if any
+        argument_types (list[str]): A list of argument types, if any
         oid (int): Procedure OID
 
     Attributes:
@@ -247,7 +249,7 @@ class Function(_BaseProcedure):
         strict (bool): Whether the function is strict
         volatility (Volatility): Volatility mode (IMMUTABLE/STABLE/VOLATILE)
         parallel_mode (ParallelSafety): Parallel mode (SAFE/RESTRICTED/UNSAFE)
-        argument_types (List[str]): A list of argument types, if any
+        argument_types (list[str]): A list of argument types, if any
         oid (int): Procedure OID
     """
 
@@ -269,7 +271,7 @@ class WindowFunction(_BaseProcedure):
         strict (bool): Whether the function is strict
         volatility (Volatility): Volatility mode (IMMUTABLE/STABLE/VOLATILE)
         parallel_mode (ParallelSafety): Parallel mode (SAFE/RESTRICTED/UNSAFE)
-        argument_types (List[str]): A list of argument types, if any
+        argument_types (list[str]): A list of argument types, if any
         oid (int): Procedure OID
 
     Attributes:
@@ -282,7 +284,7 @@ class WindowFunction(_BaseProcedure):
         strict (bool): Whether the function is strict
         volatility (Volatility): Volatility mode (IMMUTABLE/STABLE/VOLATILE)
         parallel_mode (ParallelSafety): Parallel mode (SAFE/RESTRICTED/UNSAFE)
-        argument_types (List[str]): A list of argument types, if any
+        argument_types (list[str]): A list of argument types, if any
         oid (int): Procedure OID
     """
 
@@ -304,7 +306,7 @@ class Aggregate(_BaseProcedure):
         strict (bool): Whether the function is strict
         volatility (Volatility): Volatility mode (IMMUTABLE/STABLE/VOLATILE)
         parallel_mode (ParallelSafety): Parallel mode (SAFE/RESTRICTED/UNSAFE)
-        argument_types (List[str]): A list of argument types, if any
+        argument_types (list[str]): A list of argument types, if any
         oid (int): Procedure OID
 
 
@@ -318,7 +320,7 @@ class Aggregate(_BaseProcedure):
         strict (bool): Whether the function is strict
         volatility (Volatility): Volatility mode (IMMUTABLE/STABLE/VOLATILE)
         parallel_mode (ParallelSafety): Parallel mode (SAFE/RESTRICTED/UNSAFE)
-        argument_types (List[str]): A list of argument types, if any
+        argument_types (list[str]): A list of argument types, if any
         oid (int): Procedure OID
     """
 
@@ -360,15 +362,15 @@ class _ProcedureMapper(generic._BaseObjectMapper[_BaseProcedure]):
         return obj
 
 
-class ProcedureVariations(List[_BaseProcedure], generic._ClusterBound):
+class ProcedureVariations(list[_BaseProcedure], generic._ClusterBound):
     """A list of procedures with the same name, but variable argument sets."""
 
-    def __init__(self, cluster: "Cluster"):
+    def __init__(self, cluster: Cluster):
         super().__init__()
         generic._ClusterBound.__init__(self, cluster=cluster)
 
 
-_procedure_kinds: Dict[str, Type[_BaseProcedure]] = {
+_procedure_kinds: dict[str, type[_BaseProcedure]] = {
     "f": Function,
     "p": Procedure,
     "w": WindowFunction,
@@ -383,7 +385,7 @@ class ProcedureCollection(generic._BaseCollection[ProcedureVariations]):
     set of arguments.
     """
 
-    def __init__(self, cluster: "Cluster"):
+    def __init__(self, cluster: Cluster):
         super().__init__(cluster=cluster)
         if cluster:
             self.refresh()
@@ -410,7 +412,8 @@ class ProcedureCollection(generic._BaseCollection[ProcedureVariations]):
                     except KeyError:
                         raise PostgresError(f"Unknown procedure kind: {kind}")
                     # Subclasses provide 'kind' via kwargs in their __init__
-                    proc = proc_class(  # type: ignore[call-arg]
+                    # Type checker can't verify dynamic class instantiation signature compatibility
+                    proc = proc_class(  # type: ignore[call-arg]  # Dynamic instantiation: subclasses add 'kind' in __init__
                         name=mapper["name"],
                         schema=mapper["schema"],
                         oid=mapper["oid"],

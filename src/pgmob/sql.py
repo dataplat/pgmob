@@ -2,18 +2,19 @@
 classes are eventually decoded by adapters into SQL statements with appropriate syntax, parameters and quotation.
 """
 
+from __future__ import annotations
+
 import string
 from collections.abc import Generator, Sequence
-from typing import List, Union
 
 
 class Composable:
     """Common interface for SQL-like objects"""
 
-    def __add__(self, other: "Composable") -> "Composed":
+    def __add__(self, other: Composable) -> Composed:
         return Composed(self, other)
 
-    def __mul__(self, other: int) -> "Composed":
+    def __mul__(self, other: int) -> Composed:
         if not isinstance(other, int):
             raise TypeError("int type is required")
         return Composed(*[self for _ in range(other)])
@@ -24,7 +25,7 @@ class Composable:
         else:
             return False
 
-    def compose(self) -> "Composed":
+    def compose(self) -> Composed:
         """Method utilized by an adapter to retrieve a Composed object that contains
         a list of objects and is ready to be iterated upon. All iterated objects are
         guaranteed to be one of: SQL, Literal, Identifier.
@@ -71,7 +72,7 @@ class Composed(Composable):
     def __init__(self, *args: Composable) -> None:
         self._parts = list(self._process_parts(list(args)))
 
-    def _process_parts(self, parts: Union[List[Composable], "Composed"]) -> Generator[_Singleton, None, None]:
+    def _process_parts(self, parts: list[Composable] | Composed) -> Generator[_Singleton]:
         for part in iter(parts):
             if isinstance(part, Composed):
                 yield from self._process_parts(part)
@@ -80,7 +81,7 @@ class Composed(Composable):
             else:
                 raise TypeError("Unexpected type %s", part.__class__.__name__)
 
-    def __iter__(self) -> Generator[_Singleton, None, None]:
+    def __iter__(self) -> Generator[_Singleton]:
         yield from iter(self._parts)
 
     def __len__(self) -> int:

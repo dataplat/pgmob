@@ -1,6 +1,8 @@
 """Postgresql table objects"""
 
-from typing import TYPE_CHECKING, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from .. import util
 from ..errors import PostgresError
@@ -36,17 +38,17 @@ class Table(generic._DynamicObject, generic._CollectionChild):
         self,
         name: str,
         schema: str = "public",
-        owner: Optional[str] = None,
-        cluster: Optional["Cluster"] = None,
-        parent: Optional["TableCollection"] = None,
-        oid: Optional[int] = None,
+        owner: str | None = None,
+        cluster: Cluster | None = None,
+        parent: TableCollection | None = None,
+        oid: int | None = None,
     ):
         """Initialize a new Table object"""
         super().__init__(kind="TABLE", cluster=cluster, oid=oid, name=name, schema=schema)
         generic._CollectionChild.__init__(self, parent=parent)
         self._schema: str = schema
         self._owner = owner
-        self._tablespace: Optional[str] = None
+        self._tablespace: str | None = None
         self._row_security: bool = False
 
     def drop(self, cascade: bool = False):
@@ -101,7 +103,7 @@ class Table(generic._DynamicObject, generic._CollectionChild):
             self._row_security = value
 
     @property
-    def owner(self) -> Optional[str]:
+    def owner(self) -> str | None:
         return self._owner
 
     @owner.setter
@@ -143,7 +145,7 @@ class TableCollection(generic._BaseCollection[Table]):
     For tables outside of the 'public' schema, index becomes "schemaname.tablename".
     """
 
-    def __init__(self, cluster: "Cluster"):
+    def __init__(self, cluster: Cluster):
         super().__init__(cluster=cluster)
         if cluster:
             self.refresh()

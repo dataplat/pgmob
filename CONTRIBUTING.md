@@ -2,6 +2,10 @@
 
 This module is very much work-in-progress, and if you see a potential improvement, feel free to submit your code!
 
+## Requirements
+
+**Python 3.13 or higher** is required for development.
+
 ## Support questions
 
 Use one of the following options:
@@ -57,6 +61,8 @@ Use the following guidelines when writing tests:
 ### Executing the tests
 
 ```shell
+
+# Install dependencies and run tests
 $ uv sync --all-extras
 $ uv run pytest
 ```

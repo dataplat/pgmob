@@ -1,8 +1,8 @@
 import os
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from types import ModuleType
-from typing import Callable
 
 import docker
 import pytest
@@ -73,9 +73,11 @@ def container(docker_client: docker.DockerClient, container_name, pg_password):
     # wait until pg is ready
     attempts = 0
     while attempts < 30:
-        if container.exec_run("pg_isready").exit_code == 0:
-            if container.exec_run('psql -U postgres -c "select 1"').exit_code == 0:
-                break
+        if (
+            container.exec_run("pg_isready").exit_code == 0
+            and container.exec_run('psql -U postgres -c "select 1"').exit_code == 0
+        ):
+            break
         attempts += 1
         time.sleep(1)
 

@@ -1,5 +1,4 @@
 from collections import namedtuple
-from typing import List
 from unittest.mock import Mock
 
 import pytest
@@ -12,9 +11,10 @@ from pgmob.sql import Composed
 
 class PGMobTester:
     @staticmethod
-    def _parse_calls(*args, statement: int = None) -> List[str]:
-        singletons: List[str] = []
-        statements = [args[statement]] if statement else args
+    def _parse_calls(*args, statement: int | None = None) -> list[str]:
+        singletons: list[str] = []
+        # If statement is specified, only process that specific call
+        statements = [args[statement]] if statement is not None else args
         for singleton in [x.args[0] for x in statements]:
             if isinstance(singleton, Composed):
                 singletons.extend([str(x._value) for x in singleton._parts])
@@ -23,11 +23,27 @@ class PGMobTester:
         return singletons
 
     @staticmethod
-    def assertSql(sql: str, cursor: Mock, statement: int = None, mogrify: bool = False):
-        singletons = PGMobTester._parse_calls(
-            *(cursor.mogrify.call_args_list if mogrify else cursor.execute.call_args_list)
-        )
-        assert any([sql in x for x in singletons]), (
+    def assertSql(sql: str, cursor: Mock, mogrify: bool = False, statement: int | None = None):
+        # If statement is None, parse all calls and check all singletons
+        # If statement is provided, it refers to the index in the final singletons list
+        if statement is None:
+            singletons = PGMobTester._parse_calls(
+                *(cursor.mogrify.call_args_list if mogrify else cursor.execute.call_args_list)
+            )
+        else:
+            # Parse all calls to get all singletons, then check specific index
+            all_singletons = PGMobTester._parse_calls(
+                *(cursor.mogrify.call_args_list if mogrify else cursor.execute.call_args_list)
+            )
+            # Check if the statement index is valid
+            if statement >= len(all_singletons):
+                raise IndexError(
+                    f"Statement index {statement} out of range (only {len(all_singletons)} singletons)"
+                )
+            # Check only the specific singleton at the given index
+            singletons = [all_singletons[statement]]
+
+        assert any(sql in x for x in singletons), (
             "{sql} was supposed to be among statements:\n{stmts}".format(sql=sql, stmts="\n".join(singletons))
         )
 

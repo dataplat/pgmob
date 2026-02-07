@@ -1,5 +1,1 @@
----
-inclusion: always
----
-
-#[[file:../../.windsurf/rules/project-patterns.md]]
+../../.windsurf/rules/project-patterns.md

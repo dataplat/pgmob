@@ -2,7 +2,7 @@
 name = "pgmob-docs"
 version = "0.1.0"
 description = "Documentation dependencies for pgmob"
-requires-python = ">=3.9"
+requires-python = ">=3.13"
 dependencies = [
     "pgmob[psycopg2-binary]",
     "sphinx>=6.1.3",

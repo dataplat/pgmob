@@ -1,7 +1,7 @@
 """Postgresql roles"""
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from .. import util
 from ..adapters import AdapterError
@@ -51,8 +51,8 @@ class Role(generic._DynamicObject, generic._CollectionChild):
     def __init__(
         self,
         name: str,
-        password: Optional[str] = None,
-        cluster: Optional["Cluster"] = None,
+        password: str | None = None,
+        cluster: "Cluster | None" = None,
         superuser: bool = False,
         inherit: bool = True,
         createrole: bool = False,
@@ -61,9 +61,9 @@ class Role(generic._DynamicObject, generic._CollectionChild):
         replication: bool = False,
         bypassrls: bool = False,
         connection_limit: int = -1,
-        valid_until: Optional[datetime] = None,
-        oid: Optional[int] = None,
-        parent: Optional["RoleCollection"] = None,
+        valid_until: datetime | None = None,
+        oid: int | None = None,
+        parent: "RoleCollection | None" = None,
     ):
         super().__init__(kind="ROLE", cluster=cluster, oid=oid, name=name)
         generic._CollectionChild.__init__(self, parent=parent)
@@ -145,11 +145,11 @@ class Role(generic._DynamicObject, generic._CollectionChild):
         self._set_permission("bypassrls", value)
 
     @property
-    def valid_until(self) -> Optional[datetime]:
+    def valid_until(self) -> datetime | None:
         return self._valid_until
 
     @valid_until.setter
-    def valid_until(self, value: Optional[datetime]):
+    def valid_until(self, value: datetime | None):
         self._set_attribute("valid_until", str(value))
 
     @property
@@ -157,7 +157,7 @@ class Role(generic._DynamicObject, generic._CollectionChild):
         return self._connection_limit
 
     @connection_limit.setter
-    def connection_limit(self, value: Optional[int]):
+    def connection_limit(self, value: int | None):
         self._set_attribute("connection_limit", value)
 
     def _set_attribute(self, attr: str, value: Any):
@@ -175,14 +175,14 @@ class Role(generic._DynamicObject, generic._CollectionChild):
             self._changes[attr] = generic._SQLChange(obj=self, sql=stmt)
             setattr(self, f"_{attr}", permission)
 
-    def script(self, as_composable: bool = False) -> Union[str, Composable]:
+    def script(self, as_composable: bool = False) -> str | Composable:
         """Scripts out a role.
 
         Args:
             as_composable (bool): return Composable object instead of plain text
 
         Returns:
-            Union[str, Composable]: role creation script
+            str | Composable: role creation script
         """
         permission_list = {
             "SUPERUSER": self.superuser,
@@ -194,7 +194,7 @@ class Role(generic._DynamicObject, generic._CollectionChild):
             "BYPASSRLS": self.bypassrls,
         }
         sql = "CREATE ROLE {role}"
-        params: Dict[str, Composable] = {"role": self._sql_fqn()}
+        params: dict[str, Composable] = {"role": self._sql_fqn()}
         password = self._password if self._password else self.get_password_md5()
         if password:
             sql += " PASSWORD {password}"
@@ -237,7 +237,7 @@ class Role(generic._DynamicObject, generic._CollectionChild):
                 raise
         self.cluster.execute(SQL("DROP ROLE {fqn}").format(fqn=self._sql_fqn()))
 
-    def get_password_md5(self) -> Optional[str]:
+    def get_password_md5(self) -> str | None:
         """Returns md5 password hash for the role"""
         sql = SQL("SELECT rolpassword FROM pg_catalog.pg_authid WHERE rolname = %s")
         result = self.cluster.execute(sql, self.name)
@@ -312,7 +312,7 @@ class RoleCollection(generic._BaseCollection[Role]):
     def new(
         self,
         name: str,
-        password: Optional[str] = None,
+        password: str | None = None,
         superuser: bool = False,
         inherit: bool = True,
         createrole: bool = False,
@@ -321,7 +321,7 @@ class RoleCollection(generic._BaseCollection[Role]):
         replication: bool = False,
         bypassrls: bool = False,
         connection_limit: int = -1,
-        valid_until: Optional[datetime] = None,
+        valid_until: datetime | None = None,
     ) -> Role:
         """Create a role object on the current Postgres cluster. The object
         is created ephemeral and either needs to be added to the role collection,

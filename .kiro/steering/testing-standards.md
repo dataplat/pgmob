@@ -1,5 +1,1 @@
----
-inclusion: always
----
-
-#[[file:../../.windsurf/rules/testing-standards.md]]
+../../.windsurf/rules/testing-standards.md

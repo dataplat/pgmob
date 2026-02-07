@@ -1,6 +1,8 @@
 """Postgresql largeobject objects"""
 
-from typing import TYPE_CHECKING, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from pgmob import util
 from pgmob.adapters.base import BaseLargeObject
@@ -30,10 +32,10 @@ class LargeObject(generic._DynamicObject, generic._CollectionChild):
 
     def __init__(
         self,
-        oid: Optional[int] = None,
-        cluster: Optional["Cluster"] = None,
-        parent: Optional["LargeObjectCollection"] = None,
-        owner: Optional[str] = None,
+        oid: int | None = None,
+        cluster: Cluster | None = None,
+        parent: LargeObjectCollection | None = None,
+        owner: str | None = None,
     ):
         """Initialize a new LargeObject object"""
         super().__init__(kind="LARGE OBJECT", cluster=cluster, oid=oid, name=str(oid))
@@ -54,7 +56,7 @@ class LargeObject(generic._DynamicObject, generic._CollectionChild):
             return result
 
     @property
-    def owner(self) -> Optional[str]:
+    def owner(self) -> str | None:
         return self._owner
 
     @owner.setter

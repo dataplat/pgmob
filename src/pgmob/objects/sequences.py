@@ -1,6 +1,8 @@
 """Sequence objects"""
 
-from typing import TYPE_CHECKING, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from .. import util
 from ..errors import PostgresError
@@ -42,24 +44,24 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
         self,
         name: str,
         schema: str = "public",
-        owner: Optional[str] = None,
-        cluster: Optional["Cluster"] = None,
-        parent: Optional["SequenceCollection"] = None,
-        oid: Optional[int] = None,
+        owner: str | None = None,
+        cluster: Cluster | None = None,
+        parent: SequenceCollection | None = None,
+        oid: int | None = None,
     ):
         """Initialize a new Sequence object"""
         super().__init__(kind="SEQUENCE", cluster=cluster, oid=oid, name=name, schema=schema)
         generic._CollectionChild.__init__(self, parent=parent)
         self._owner = owner
         self._schema: str = schema
-        self._data_type: Optional[str] = None
-        self._start_value: Optional[int] = None
-        self._min_value: Optional[int] = None
-        self._max_value: Optional[int] = None
-        self._increment_by: Optional[int] = None
-        self._cycle: Optional[bool] = None
-        self._cache_size: Optional[int] = None
-        self._last_value: Optional[int] = None
+        self._data_type: str | None = None
+        self._start_value: int | None = None
+        self._min_value: int | None = None
+        self._max_value: int | None = None
+        self._increment_by: int | None = None
+        self._cycle: bool | None = None
+        self._cache_size: int | None = None
+        self._last_value: int | None = None
 
     @property
     def data_type(self):
@@ -74,7 +76,7 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
             self._data_type = value
 
     @property
-    def start_value(self) -> Optional[int]:
+    def start_value(self) -> int | None:
         return self._start_value
 
     @start_value.setter
@@ -89,7 +91,7 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
             self._start_value = value
 
     @property
-    def min_value(self) -> Optional[int]:
+    def min_value(self) -> int | None:
         return self._min_value
 
     @min_value.setter
@@ -105,7 +107,7 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
             self._min_value = value
 
     @property
-    def max_value(self) -> Optional[int]:
+    def max_value(self) -> int | None:
         return self._max_value
 
     @max_value.setter
@@ -121,7 +123,7 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
             self._max_value = value
 
     @property
-    def increment_by(self) -> Optional[int]:
+    def increment_by(self) -> int | None:
         return self._increment_by
 
     @increment_by.setter
@@ -136,19 +138,19 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
             self._increment_by = value
 
     @property
-    def cycle(self) -> Optional[bool]:
+    def cycle(self) -> bool | None:
         return self._cycle
 
     @property
-    def cache_size(self) -> Optional[int]:
+    def cache_size(self) -> int | None:
         return self._cache_size
 
     @property
-    def last_value(self) -> Optional[int]:
+    def last_value(self) -> int | None:
         return self._last_value
 
     @property
-    def owner(self) -> Optional[str]:
+    def owner(self) -> str | None:
         return self._owner
 
     @owner.setter
@@ -241,7 +243,7 @@ class SequenceCollection(generic._BaseCollection[Sequence]):
     For sequences outside of the 'public' schema, index becomes "schemaname.sequencename".
     """
 
-    def __init__(self, cluster: "Cluster"):
+    def __init__(self, cluster: Cluster):
         super().__init__(cluster=cluster)
         if cluster:
             self.refresh()

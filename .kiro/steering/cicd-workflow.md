@@ -1,5 +1,1 @@
----
-inclusion: always
----
-
-#[[file:../../.windsurf/rules/cicd-workflow.md]]
+../../.windsurf/rules/cicd-workflow.md

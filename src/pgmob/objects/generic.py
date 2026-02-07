@@ -1,8 +1,10 @@
 """Internal generic objects shared between other objects."""
 
+from __future__ import annotations
+
 from collections.abc import Iterator
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, override
 
 from pgmob import errors
 from pgmob.sql import SQL, Composable, Identifier
@@ -11,25 +13,22 @@ if TYPE_CHECKING:
     from ..cluster import Cluster
 
 
-T = TypeVar("T")
-
-
 class _BasePostgresObject:
     """Base class for any Postgres object with oid.
 
     Args:
-        oid (Optional[int]): object id
+        oid (int | None): object id
 
     Attributes:
-        oid (Optional[int]): object id
+        oid (int | None): object id
     """
 
-    def __init__(self, oid: Optional[int] = None):
+    def __init__(self, oid: int | None = None):
         self._oid = oid
 
     # properties
     @property
-    def oid(self) -> Optional[int]:
+    def oid(self) -> int | None:
         return self._oid
 
     @oid.setter
@@ -43,11 +42,11 @@ class _BasePostgresObject:
         return self._oid is None or self._oid <= 0
 
 
-class _BaseObjectMapper(Generic[T]):
+class _BaseObjectMapper[T]:
     """Maps the resultset to a Dynamic Object"""
 
-    attributes: List[str] = []
-    exclude: List[str] = []
+    attributes: list[str] = []
+    exclude: list[str] = []
 
     def __init__(self, definition: tuple):
         self.definition = definition
@@ -72,11 +71,11 @@ class _BaseObjectMapper(Generic[T]):
 class _ClusterBound:
     """Object that is attached to a Cluster. Implements cluster retrieval internal function"""
 
-    def __init__(self, cluster: Optional["Cluster"] = None):
+    def __init__(self, cluster: Cluster | None = None):
         self._cluster = cluster
 
     @property
-    def cluster(self) -> "Cluster":
+    def cluster(self) -> Cluster:
         """Retrieves the Cluster instance bound to the object
 
         Returns:
@@ -87,7 +86,7 @@ class _ClusterBound:
         return self._cluster
 
     @cluster.setter
-    def cluster(self, value: "Cluster"):
+    def cluster(self, value: Cluster):
         """Bounds object to a cluster
 
         Args:
@@ -105,10 +104,10 @@ class Fqn:
 
     Args:
         name (str): object name
-        schema (Optional[str]): schema name
+        schema (str | None): schema name
     """
 
-    def __init__(self, name: str, schema: Optional[str] = None):
+    def __init__(self, name: str, schema: str | None = None):
         self.name = name
         self.schema = schema
 
@@ -131,9 +130,9 @@ class _FqnObject(_BasePostgresObject, _ClusterBound):
         self,
         kind: str,
         name: str,
-        oid: Optional[int] = None,
-        schema: Optional[str] = None,
-        cluster: Optional["Cluster"] = None,
+        oid: int | None = None,
+        schema: str | None = None,
+        cluster: Cluster | None = None,
     ):
         _BasePostgresObject.__init__(self, oid=oid)
         _ClusterBound.__init__(self, cluster=cluster)
@@ -171,9 +170,9 @@ class _DynamicObject(_FqnObject):
         self,
         kind: str,
         name: str,
-        oid: Optional[int] = None,
-        schema: Optional[str] = None,
-        cluster: Optional["Cluster"] = None,
+        oid: int | None = None,
+        schema: str | None = None,
+        cluster: Cluster | None = None,
     ):
         super().__init__(kind=kind, name=name, schema=schema, cluster=cluster, oid=oid)
         self._changes = _ChangeCollection()
@@ -209,11 +208,12 @@ def _set_ephemeral_attr(obj: _DynamicObject, attr: str, value: Any):
         setattr(obj, f"_{attr}", value)
 
 
-class MappedCollection(Dict[str, T]):
+class MappedCollection[T](dict[str, T]):
     """Class implements an iterable dictionary.
     Items are accessed via a key, but when iterated over, acts as a list."""
 
-    def __iter__(self) -> Iterator[T]:  # type: ignore[override]
+    @override
+    def __iter__(self) -> Iterator[T]:  # type: ignore[override]  # Intentional: yields values, not keys
         for key in self.keys():
             yield self[key]
 
@@ -221,11 +221,12 @@ class MappedCollection(Dict[str, T]):
         return f"{type(self).__name__}({self.keys()})"
 
 
-class SortedMappedCollection(Dict[str, T]):
+class SortedMappedCollection[T](dict[str, T]):
     """Class implements an iterable sorted dictionary.
     Items are accessed via a key, but when iterated over, acts as a sorted list."""
 
-    def __iter__(self) -> Iterator[T]:  # type: ignore[override]
+    @override
+    def __iter__(self) -> Iterator[T]:  # type: ignore[override]  # Intentional: yields values, not keys
         for key in sorted(self.keys()):
             yield self[key]
 
@@ -233,18 +234,19 @@ class SortedMappedCollection(Dict[str, T]):
         return f"{type(self).__name__}({sorted(self.keys())})"
 
 
-class _BaseCollection(_ClusterBound, SortedMappedCollection[T]):
+class _BaseCollection[T](_ClusterBound, SortedMappedCollection[T]):
     """Generic Postgres collection object bound to a cluster."""
 
-    def __init__(self, cluster: "Cluster"):
-        SortedMappedCollection.__init__(self)  # type: ignore
+    def __init__(self, cluster: Cluster):
+        SortedMappedCollection.__init__(self)  # Multiple inheritance init pattern
         _ClusterBound.__init__(self, cluster=cluster)
 
-    def __setitem__(self, key: str, value: T):
+    @override
+    def __setitem__(self, key: str, value: T):  # Adds cluster binding validation
         if not isinstance(value, _ClusterBound):
             raise AttributeError("Unsupported type %s", type(value))
         value.cluster = self.cluster
-        SortedMappedCollection.__setitem__(self, key, value)  # type: ignore
+        SortedMappedCollection.__setitem__(self, key, value)  # type: ignore[arg-type]
 
     @staticmethod
     def _index(name: str, schema: str):
@@ -271,11 +273,11 @@ class _BaseCollection(_ClusterBound, SortedMappedCollection[T]):
 class _CollectionChild:
     """Defines an object belonging to a Postgres collection"""
 
-    def __init__(self, parent: Optional[_BaseCollection] = None):
+    def __init__(self, parent: _BaseCollection | None = None):
         self._parent = parent
 
     @property
-    def parent(self) -> Optional[_BaseCollection]:
+    def parent(self) -> _BaseCollection | None:
         return self._parent
 
 
@@ -294,7 +296,7 @@ class _ObjectChange:
 
 
 class _SQLChange(_ObjectChange):
-    def __init__(self, obj: _DynamicObject, sql: Composable, params: Optional[tuple] = None):
+    def __init__(self, obj: _DynamicObject, sql: Composable, params: tuple | None = None):
         def task():
             obj.cluster.execute(sql, params)
 
@@ -306,10 +308,10 @@ class _SQLChange(_ObjectChange):
 class _ChangeCollection(MappedCollection[_ObjectChange]):
     """An iterable collection of changes indexed by attribute name."""
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: _ObjectChange):
         if not isinstance(value, _ObjectChange):
             raise AttributeError(f"{value.__class__.__name__} is not of an _ObjectChange type")
-        MappedCollection.__setitem__(self, key, value)
+        MappedCollection.__setitem__(self, key, value)  # type: ignore[arg-type]
 
 
 class AliasEnum(Enum):

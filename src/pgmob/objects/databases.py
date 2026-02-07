@@ -1,6 +1,8 @@
 """Database objects. Represent databases of the Postgres cluster."""
 
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from .. import util
 from ..errors import PostgresError
@@ -45,14 +47,14 @@ class Database(generic._DynamicObject, generic._CollectionChild):
     def __init__(
         self,
         name: str,
-        cluster: Optional["Cluster"] = None,
-        parent: Optional["DatabaseCollection"] = None,
-        owner: Optional[str] = None,
-        encoding: Optional[str] = None,
-        collation: Optional[str] = None,
+        cluster: Cluster | None = None,
+        parent: DatabaseCollection | None = None,
+        owner: str | None = None,
+        encoding: str | None = None,
+        collation: str | None = None,
         is_template: bool = False,
-        oid: Optional[int] = None,
-        from_template: Optional[str] = None,
+        oid: int | None = None,
+        from_template: str | None = None,
     ):
         super().__init__(cluster=cluster, name=name, kind="DATABASE", oid=oid)
         generic._CollectionChild.__init__(self, parent=parent)
@@ -61,14 +63,14 @@ class Database(generic._DynamicObject, generic._CollectionChild):
         self._collation = collation
         self._is_template = is_template
         self._from_template = from_template
-        self._character_type: Optional[str] = None
+        self._character_type: str | None = None
         self._allow_connections = True
-        self._connection_limit: Optional[int] = None
-        self._last_sys_oid: Optional[int] = None
-        self._frozen_xid: Optional[int] = None
-        self._min_multixact_id: Optional[int] = None
-        self._tablespace: Optional[str] = None
-        self._acl: Optional[str] = None
+        self._connection_limit: int | None = None
+        self._last_sys_oid: int | None = None
+        self._frozen_xid: int | None = None
+        self._min_multixact_id: int | None = None
+        self._tablespace: str | None = None
+        self._acl: str | None = None
 
     def _modify(self, column: str, value: Any):
         """Internal pg_database modification function"""
@@ -88,7 +90,7 @@ class Database(generic._DynamicObject, generic._CollectionChild):
         generic._set_ephemeral_attr(self, "name", name)
 
     @property
-    def owner(self) -> Optional[str]:
+    def owner(self) -> str | None:
         return self._owner
 
     @owner.setter
@@ -96,15 +98,15 @@ class Database(generic._DynamicObject, generic._CollectionChild):
         generic._set_ephemeral_attr(self, "owner", owner)
 
     @property
-    def encoding(self) -> Optional[str]:
+    def encoding(self) -> str | None:
         return self._encoding
 
     @property
-    def collation(self) -> Optional[str]:
+    def collation(self) -> str | None:
         return self._collation
 
     @property
-    def character_type(self) -> Optional[str]:
+    def character_type(self) -> str | None:
         return self._character_type
 
     @property
@@ -127,7 +129,7 @@ class Database(generic._DynamicObject, generic._CollectionChild):
         return self._allow_connections
 
     @property
-    def connection_limit(self) -> Optional[int]:
+    def connection_limit(self) -> int | None:
         return self._connection_limit
 
     @connection_limit.setter
@@ -142,19 +144,19 @@ class Database(generic._DynamicObject, generic._CollectionChild):
             self._connection_limit = value
 
     @property
-    def last_sys_oid(self) -> Optional[int]:
+    def last_sys_oid(self) -> int | None:
         return self._last_sys_oid
 
     @property
-    def frozen_xid(self) -> Optional[int]:
+    def frozen_xid(self) -> int | None:
         return self._frozen_xid
 
     @property
-    def min_multixact_id(self) -> Optional[int]:
+    def min_multixact_id(self) -> int | None:
         return self._min_multixact_id
 
     @property
-    def tablespace(self) -> Optional[str]:
+    def tablespace(self) -> str | None:
         return self._tablespace
 
     @tablespace.setter
@@ -162,7 +164,7 @@ class Database(generic._DynamicObject, generic._CollectionChild):
         generic._set_ephemeral_attr(self, "tablespace", value)
 
     @property
-    def acl(self) -> Optional[str]:
+    def acl(self) -> str | None:
         return self._acl
 
     # methods
@@ -214,17 +216,17 @@ class Database(generic._DynamicObject, generic._CollectionChild):
         sql = util.get_sql("get_database") + SQL(" WHERE datname = %s")
         _DatabaseMapper(self.cluster.execute(sql, self.name)[0]).map(self)
 
-    def script(self, as_composable: bool = False) -> Union[str, Composable]:
+    def script(self, as_composable: bool = False) -> str | Composable:
         """Generate a database creation script.
 
         Args:
             as_composable (bool): return Composable object instead of plain text
 
         Returns:
-            Union[str, Composable]: database creation script
+            str | Composable: database creation script
         """
         sql = "CREATE DATABASE {db}"
-        params: Dict[str, Composable] = {"db": self._sql_fqn()}
+        params: dict[str, Composable] = {"db": self._sql_fqn()}
         if self._from_template:
             sql += " TEMPLATE {template}"
             params["template"] = Identifier(self._from_template)
@@ -272,7 +274,7 @@ class _DatabaseMapper(generic._BaseObjectMapper[Database]):
 class DatabaseCollection(generic._BaseCollection[Database]):
     """An iterable collection of databases indexed by database name."""
 
-    def __init__(self, cluster: "Cluster"):
+    def __init__(self, cluster: Cluster):
         super().__init__(cluster=cluster)
         if cluster:
             self.refresh()
@@ -290,11 +292,11 @@ class DatabaseCollection(generic._BaseCollection[Database]):
     def new(
         self,
         name: str,
-        template: Optional[str] = None,
-        owner: Optional[str] = None,
+        template: str | None = None,
+        owner: str | None = None,
         is_template: bool = False,
-        encoding: Optional[str] = None,
-        collation: Optional[str] = None,
+        encoding: str | None = None,
+        collation: str | None = None,
     ) -> Database:
         """Create a database object on the current Postgres cluster. The object
         is created ephemeral and either needs to be added to the database collection,

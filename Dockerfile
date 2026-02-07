@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION=3.10-bullseye
+ARG PYTHON_VERSION=3.13-bookworm
 FROM python:$PYTHON_VERSION
 ARG UV_EXTRAS=psycopg2-binary
 

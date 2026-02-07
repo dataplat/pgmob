@@ -38,7 +38,6 @@ class TestBackupFile:
         cleanup_file(container, path)
 
     def test_nonexistent_base_path_backup(self, connect, db_with_table):
-        path = "/nonexistingpath/" + db_with_table
         cluster = connect()
         backup = FileBackup(cluster=cluster, base_path="/nonexistingpath/")
         pytest.raises(

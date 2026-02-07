@@ -30,6 +30,53 @@ src/tests/
 - Integration tests: `functional/test_<feature>.py`
 - One test file per source module
 
+## Installing Test Dependencies
+
+When running tests for this project, you need to install the psycopg2-binary extra:
+
+```bash
+uv sync --extra psycopg2-binary --extra dev
+```
+
+## Why psycopg2-binary?
+
+The project supports both `psycopg2` and `psycopg2-binary` as optional dependencies. For testing and development:
+
+- **psycopg2-binary**: Pre-compiled binary package, easier to install, recommended for development
+- **psycopg2**: Source package requiring PostgreSQL development libraries, recommended for production
+
+## Running Tests
+
+After installing dependencies:
+
+```bash
+# Run all tests
+uv run pytest -vv
+
+# Run unit tests only
+uv run pytest -m unit -vv
+
+# Run functional tests only (requires Docker, will start container automatically)
+uv run pytest -m integration -vv
+```
+
+## Type Checking
+
+Only matters for the module itself.
+
+```bash
+uv run ty check src/pgmob
+```
+
+## Linting
+
+Should apply to both tests and source code.
+
+```bash
+uv run ruff check src
+uv run ruff format --check src
+```
+
 ## Test Naming Convention
 
 ### Pattern

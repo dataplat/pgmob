@@ -137,9 +137,9 @@ class TestLargeObject:
             adapter.commit()
         assert self.get_current(psql, db, lo_id) == ""
 
-        with pytest.raises(Exception), adapter.lobject(lo_id, "r") as lobject_r:
-            with pytest.raises(Exception):
-                lobject_r.unlink()
+        # After unlinking, trying to open the large object should raise an error
+        with pytest.raises((OSError, IOError, Exception)), adapter.lobject(lo_id, "r") as lobject_r:
+            lobject_r.unlink()
 
     def test_read(self, adapter, lo_ids_factory, db):
         lo_id = lo_ids_factory(db=db)[0]
@@ -156,9 +156,9 @@ class TestLargeObject:
             adapter.commit()
         assert self.get_current(psql, db, lo_id) == "new data"
 
-        with pytest.raises(Exception), adapter.lobject(lo_id, "r") as lobject_r:
-            with pytest.raises(Exception):
-                lobject_r.write(b"new data2")
+        # Writing to a read-only large object should raise an error
+        with pytest.raises((OSError, IOError, Exception)), adapter.lobject(lo_id, "r") as lobject_r:
+            lobject_r.write(b"new data2")
 
     def test_truncate(self, adapter, lo_ids_factory, psql, db):
         lo_id = lo_ids_factory(db=db)[0]
@@ -172,9 +172,9 @@ class TestLargeObject:
             adapter.commit()
         assert self.get_current(psql, db, lo_id) == ""
 
-        with pytest.raises(Exception), adapter.lobject(lo_id, "r") as lobject_r:
-            with pytest.raises(Exception):
-                lobject_r.truncate()
+        # Truncating a read-only large object should raise an error
+        with pytest.raises((OSError, IOError, Exception)), adapter.lobject(lo_id, "r") as lobject_r:
+            lobject_r.truncate()
 
 
 class TestAdapter:

@@ -17,6 +17,10 @@ With PGMob, you can:
 * Script and export your database objects on the fly
 
 
+## Requirements
+
+PGMob requires **Python 3.13 or higher**.
+
 ## Installing
 
 PGMob requires an adapter to talk to PostgreSQL, which it can detect automatically. Currently supported adapters:
