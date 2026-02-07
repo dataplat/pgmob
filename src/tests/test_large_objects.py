@@ -1,9 +1,9 @@
-from importlib import import_module
 from unittest.mock import call
+
 import pytest
-from pgmob.sql import SQL, Identifier, Literal
-from pgmob.cluster import _NoAutocommitContextManager
+
 from pgmob import objects
+from pgmob.sql import SQL, Identifier, Literal
 
 
 @pytest.fixture

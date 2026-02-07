@@ -1,0 +1,1 @@
+../../.windsurf/rules/project-patterns.md

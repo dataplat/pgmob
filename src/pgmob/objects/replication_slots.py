@@ -1,9 +1,13 @@
 """Replication slots. Represent replication slots of the Postgres cluster."""
-from typing import TYPE_CHECKING, Optional, Union
-from ..adapters import AdapterError
-from ..sql import SQL, Literal, Composable
-from ..errors import PostgresError
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from .. import util
+from ..adapters import AdapterError
+from ..errors import PostgresError
+from ..sql import SQL, Composable, Literal
 from . import generic
 
 if TYPE_CHECKING:
@@ -39,8 +43,8 @@ class ReplicationSlot(generic._DynamicObject, generic._CollectionChild):
         self,
         name: str,
         plugin: str,
-        cluster: "Cluster" = None,
-        parent: "ReplicationSlotCollection" = None,
+        cluster: Cluster | None = None,
+        parent: ReplicationSlotCollection | None = None,
     ):
         """Initialize a new ReplicationSlot object"""
         super().__init__(cluster=cluster, name=name, kind="REPLICATION SLOT")
@@ -58,7 +62,7 @@ class ReplicationSlot(generic._DynamicObject, generic._CollectionChild):
 
     # properties
     @property
-    def plugin(self) -> Optional[str]:
+    def plugin(self) -> str | None:
         return self._plugin
 
     @property
@@ -66,7 +70,7 @@ class ReplicationSlot(generic._DynamicObject, generic._CollectionChild):
         return self._slot_type
 
     @property
-    def database(self) -> Optional[str]:
+    def database(self) -> str | None:
         return self._database
 
     @property
@@ -74,27 +78,27 @@ class ReplicationSlot(generic._DynamicObject, generic._CollectionChild):
         return self._temporary
 
     @property
-    def is_active(self) -> Optional[bool]:
+    def is_active(self) -> bool | None:
         return self._is_active
 
     @property
-    def active_pid(self) -> Optional[int]:
+    def active_pid(self) -> int | None:
         return self._active_pid
 
     @property
-    def xmin(self) -> Optional[int]:
+    def xmin(self) -> int | None:
         return self._xmin
 
     @property
-    def catalog_xmin(self) -> Optional[int]:
+    def catalog_xmin(self) -> int | None:
         return self._catalog_xmin
 
     @property
-    def restart_lsn(self) -> Optional[int]:
+    def restart_lsn(self) -> int | None:
         return self._restart_lsn
 
     @property
-    def confirmed_flush_lsn(self) -> Optional[int]:
+    def confirmed_flush_lsn(self) -> int | None:
         return self._confirmed_flush_lsn
 
     # methods
@@ -122,14 +126,14 @@ class ReplicationSlot(generic._DynamicObject, generic._CollectionChild):
         self.cluster.execute(self.script(as_composable=True))
         self.refresh()
 
-    def script(self, as_composable: bool = False) -> Union[str, Composable]:
+    def script(self, as_composable: bool = False) -> str | Composable:
         """Generate a database creation script.
 
         Args:
             as_composable (bool): return Composable object instead of plain text
 
         Returns:
-            Union[str, Composable]: replication slot creation script
+            str | Composable: replication slot creation script
         """
         sql = SQL("SELECT pg_create_logical_replication_slot({}, {})")
 
@@ -181,7 +185,7 @@ class _ReplicationSlotMapper(generic._BaseObjectMapper[ReplicationSlot]):
 class ReplicationSlotCollection(generic._BaseCollection[ReplicationSlot]):
     """An iterable collection of replication slots indexed by slot name."""
 
-    def __init__(self, cluster: "Cluster"):
+    def __init__(self, cluster: Cluster):
         super().__init__(cluster=cluster)
         if cluster:
             self.refresh()

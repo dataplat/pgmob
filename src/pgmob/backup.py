@@ -14,38 +14,39 @@ Example:
     >>> file_restore = FileRestore(cluster=cluster)
     >>> file_restore.restore(database=new_db, path="/tmp/db.bak")
 """
-from typing import List, Optional
+
 import logging
 from pathlib import Path
-from .os import ShellEnv, _BaseShellEnv
+
 from . import cluster
+from .os import ShellEnv, _BaseShellEnv
 
 LOGGER = logging.getLogger(__name__)
 
 
-class _CommonOptions(object):
+class _CommonOptions:
     """Common backup/restore options"""
 
-    def __init__(self, shell: Optional[_BaseShellEnv] = None, **kwargs) -> None:
+    def __init__(self, shell: _BaseShellEnv | None = None, **kwargs) -> None:
         self.shell = shell if shell else ShellEnv()
         self._add_if_exists = False
         self._clean = False
         self._create = False
         self._data_only = False
-        self._exclude_schemas: List[str] = []
-        self._format: Optional[str] = None
+        self._exclude_schemas: list[str] = []
+        self._format: str | None = None
         self._no_privileges = False
         self._no_publications = False
         self._no_subscriptions = False
         self._no_tablespaces = False
         self._no_owner = False
         self._schema_only = False
-        self._schemas: List[str] = []
-        self._section: Optional[str] = None
-        self._set_role: Optional[str] = None
+        self._schemas: list[str] = []
+        self._section: str | None = None
+        self._set_role: str | None = None
         self._strict_names = False
-        self._superuser: Optional[str] = None
-        self._tables: List[str] = []
+        self._superuser: str | None = None
+        self._tables: list[str] = []
         self._verbose = False
 
         for k, v in kwargs.items():
@@ -89,19 +90,19 @@ class _CommonOptions(object):
         self._data_only = bool(value)
 
     @property
-    def exclude_schemas(self) -> List[str]:
+    def exclude_schemas(self) -> list[str]:
         return self._exclude_schemas
 
     @exclude_schemas.setter
-    def exclude_schemas(self, value: List[str]) -> None:
+    def exclude_schemas(self, value: list[str]) -> None:
         self._exclude_schemas = [str(x) for x in value]
 
     @property
-    def format(self) -> Optional[str]:
+    def format(self) -> str | None:
         return self._format
 
     @format.setter
-    def format(self, value: Optional[str]) -> None:
+    def format(self, value: str | None) -> None:
         self._format = str(value) if value else None
 
     @property
@@ -153,27 +154,27 @@ class _CommonOptions(object):
         self._schema_only = bool(value)
 
     @property
-    def schemas(self) -> List[str]:
+    def schemas(self) -> list[str]:
         return self._schemas
 
     @schemas.setter
-    def schemas(self, value: List[str]) -> None:
+    def schemas(self, value: list[str]) -> None:
         self._schemas = [str(x) for x in value]
 
     @property
-    def section(self) -> Optional[str]:
+    def section(self) -> str | None:
         return self._section
 
     @section.setter
-    def section(self, value: Optional[str]) -> None:
+    def section(self, value: str | None) -> None:
         self._section = str(value) if value else None
 
     @property
-    def set_role(self) -> Optional[str]:
+    def set_role(self) -> str | None:
         return self._set_role
 
     @set_role.setter
-    def set_role(self, value: Optional[str]) -> None:
+    def set_role(self, value: str | None) -> None:
         self._set_role = str(value) if value else None
 
     @property
@@ -185,19 +186,19 @@ class _CommonOptions(object):
         self._strict_names = bool(value)
 
     @property
-    def superuser(self) -> Optional[str]:
+    def superuser(self) -> str | None:
         return self._superuser
 
     @superuser.setter
-    def superuser(self, value: Optional[str]) -> None:
+    def superuser(self, value: str | None) -> None:
         self._superuser = str(value) if value else None
 
     @property
-    def tables(self) -> List[str]:
+    def tables(self) -> list[str]:
         return self._tables
 
     @tables.setter
-    def tables(self, value: List[str]) -> None:
+    def tables(self, value: list[str]) -> None:
         self._tables = [str(x) for x in value]
 
     @property
@@ -208,13 +209,13 @@ class _CommonOptions(object):
     def verbose(self, value: bool) -> None:
         self._verbose = bool(value)
 
-    def render_args(self) -> List[str]:
+    def render_args(self) -> list[str]:
         """Renders options as command line arguments
 
         Returns:
-            List[str]: list of command line arguments
+            list[str]: list of command line arguments
         """
-        options: List[str] = []
+        options: list[str] = []
         if self.clean:
             options.append("--clean")
         if self.create:
@@ -275,15 +276,15 @@ class BackupOptions(_CommonOptions):
         data_only (bool):                 dump only the data, not the schema
         clean (bool):                     clean (drop) database objects before recreating
         create (bool):                    include commands to create database in dump
-        schemas (List[str]):              dump the named schemas only
-        exclude_schemas (List[str]):      do NOT dump the named schemas
+        schemas (list[str]):              dump the named schemas only
+        exclude_schemas (list[str]):      do NOT dump the named schemas
         no_owner (bool):                  skip restoration of object ownership in plain-text format
         schema_only (bool):               dump only the schema, no data
         superuser (str):                  superuser user name to use in plain-text format
-        tables (List[str]):               dump the named tables only
-        exclude_tables (List[str]):       do NOT dump the named tables
+        tables (list[str]):               dump the named tables only
+        exclude_tables (list[str]):       do NOT dump the named tables
         no_privileges (bool):             do not dump privileges (grant/revoke)
-        exclude_table_data (List[str]):   do NOT dump data for the named table(s)
+        exclude_table_data (list[str]):   do NOT dump data for the named table(s)
         add_if_exists (bool):             use IF EXISTS when dropping objects
         as_inserts (bool):                dump data as INSERT commands, rather than COPY
         no_subscriptions (bool):          do not dump subscriptions
@@ -295,15 +296,15 @@ class BackupOptions(_CommonOptions):
         blobs (bool):                     Include large objects in the dump
     """
 
-    def __init__(self, shell: Optional[_BaseShellEnv] = None, **kwargs) -> None:
+    def __init__(self, shell: _BaseShellEnv | None = None, **kwargs) -> None:
         self._compress = False
         self._compression_level = 5
-        self._exclude_tables: List[str] = []
-        self._exclude_table_data: List[str] = []
+        self._exclude_tables: list[str] = []
+        self._exclude_table_data: list[str] = []
         self._as_inserts = False
         self._create_database = False
-        self._lock_wait_timeout: Optional[int] = None
-        self._blobs: Optional[bool] = None
+        self._lock_wait_timeout: int | None = None
+        self._blobs: bool | None = None
         super().__init__(shell=shell, **kwargs)
         self.format = "c"
 
@@ -340,42 +341,42 @@ class BackupOptions(_CommonOptions):
         self._compression_level = int(value)
 
     @property
-    def exclude_tables(self) -> List[str]:
+    def exclude_tables(self) -> list[str]:
         return self._exclude_tables
 
     @exclude_tables.setter
-    def exclude_tables(self, value: List[str]) -> None:
+    def exclude_tables(self, value: list[str]) -> None:
         self._exclude_tables = [str(x) for x in value]
 
     @property
-    def exclude_table_data(self) -> List[str]:
+    def exclude_table_data(self) -> list[str]:
         return self._exclude_table_data
 
     @exclude_table_data.setter
-    def exclude_table_data(self, value: List[str]) -> None:
+    def exclude_table_data(self, value: list[str]) -> None:
         self._exclude_table_data = [str(x) for x in value]
 
     @property
-    def lock_wait_timeout(self) -> Optional[int]:
+    def lock_wait_timeout(self) -> int | None:
         return self._lock_wait_timeout
 
     @lock_wait_timeout.setter
-    def lock_wait_timeout(self, value: Optional[int]) -> None:
+    def lock_wait_timeout(self, value: int | None) -> None:
         self._lock_wait_timeout = None if value is None else int(value)
 
     @property
-    def blobs(self) -> Optional[bool]:
+    def blobs(self) -> bool | None:
         return self._blobs
 
     @blobs.setter
-    def blobs(self, value: Optional[bool]) -> None:
+    def blobs(self, value: bool | None) -> None:
         self._blobs = None if value is None else bool(value)
 
     def render_args(self):
         """Renders options as command line arguments
 
         Returns:
-            List[str]: A list of command line arguments
+            list[str]: A list of command line arguments
         """
 
         options = super().render_args()
@@ -414,16 +415,16 @@ class RestoreOptions(_CommonOptions):
         clean (bool):                     clean (drop) database objects before recreating
         create (bool):                    create the target database
         exit_on_error (bool):             exit on error, default is to continue
-        indexes (List[str]):              restore named indexes
-        schemas (List[str]):              restore only objects in these schemas
-        exclude_schemas (List[str]):      do not restore objects in these schemas
+        indexes (list[str]):              restore named indexes
+        schemas (list[str]):              restore only objects in these schemas
+        exclude_schemas (list[str]):      do not restore objects in these schemas
         use_list (str):                   use table of contents from this file for selecting/ordering output
         no_owner (bool):                  skip restoration of object ownership
-        functions (List[str]):            (NAME(args)) restore named functions
+        functions (list[str]):            (NAME(args)) restore named functions
         schema_only (bool):               restore only the schema, no data
         superuser (str):                  superuser user name to use for disabling triggers
-        tables (List[str]):               restore named relations (table, view, etc.)
-        triggers (List[str]):             restore named triggers
+        tables (list[str]):               restore named relations (table, view, etc.)
+        triggers (list[str]):             restore named triggers
         no_privileges (bool):             skip restoration of access privileges (grant/revoke)
         single_transaction (bool):        restore as a single transaction
         disable_triggers (bool):          disable triggers during data-only restore
@@ -437,13 +438,13 @@ class RestoreOptions(_CommonOptions):
         set_role (str):                   invoke SET ROLE before dump
     """
 
-    def __init__(self, shell: Optional[_BaseShellEnv] = None, **kwargs) -> None:
+    def __init__(self, shell: _BaseShellEnv | None = None, **kwargs) -> None:
         self._exit_on_error = False
-        self._indexes: List[str] = []
-        self._functions: List[str] = []
-        self._triggers: List[str] = []
-        self._jobs: Optional[int] = None
-        self._use_list: Optional[str] = None
+        self._indexes: list[str] = []
+        self._functions: list[str] = []
+        self._triggers: list[str] = []
+        self._jobs: int | None = None
+        self._use_list: str | None = None
         self._single_transaction = False
         self._disable_triggers = False
         self._no_data_for_failed_tables = False
@@ -458,43 +459,43 @@ class RestoreOptions(_CommonOptions):
         self._exit_on_error = bool(value)
 
     @property
-    def indexes(self) -> List[str]:
+    def indexes(self) -> list[str]:
         return self._indexes
 
     @indexes.setter
-    def indexes(self, value: List[str]) -> None:
+    def indexes(self, value: list[str]) -> None:
         self._indexes = [str(x) for x in value]
 
     @property
-    def functions(self) -> List[str]:
+    def functions(self) -> list[str]:
         return self._functions
 
     @functions.setter
-    def functions(self, value: List[str]) -> None:
+    def functions(self, value: list[str]) -> None:
         self._functions = [str(x) for x in value]
 
     @property
-    def triggers(self) -> List[str]:
+    def triggers(self) -> list[str]:
         return self._triggers
 
     @triggers.setter
-    def triggers(self, value: List[str]) -> None:
+    def triggers(self, value: list[str]) -> None:
         self._triggers = [str(x) for x in value]
 
     @property
-    def jobs(self) -> Optional[int]:
+    def jobs(self) -> int | None:
         return self._jobs
 
     @jobs.setter
-    def jobs(self, value: Optional[int]) -> None:
+    def jobs(self, value: int | None) -> None:
         self._jobs = int(value) if value else None
 
     @property
-    def use_list(self) -> Optional[str]:
+    def use_list(self) -> str | None:
         return self._use_list
 
     @use_list.setter
-    def use_list(self, value: Optional[str]) -> None:
+    def use_list(self, value: str | None) -> None:
         self._use_list = str(value) if value else None
 
     @property
@@ -525,7 +526,7 @@ class RestoreOptions(_CommonOptions):
         """Renders options as command line arguments
 
         Returns:
-            List[str]: A list of command line arguments
+            list[str]: A list of command line arguments
         """
         options = super().render_args()
         if self.exit_on_error:
@@ -549,7 +550,7 @@ class RestoreOptions(_CommonOptions):
         return options
 
 
-class _BackupRestoreOperation(object):
+class _BackupRestoreOperation:
     """Base backup/restore operation class that implements binary execution.
 
     Args:
@@ -568,18 +569,18 @@ class _BackupRestoreOperation(object):
         command: str,
         base_path: str,
         options: _CommonOptions,
-        shell: Optional[_BaseShellEnv] = None,
+        shell: _BaseShellEnv | None = None,
     ) -> None:
         self.shell = shell if shell else ShellEnv()
         self.command = command
         self.binary = binary_path
         self.cluster = cluster
         self.base_path = base_path.rstrip("/")
-        self.on_start_commands: List[str] = []
-        self.on_finish_commands: List[str] = []
+        self.on_start_commands: list[str] = []
+        self.on_finish_commands: list[str] = []
         self.options = options
 
-    def _exec_commands(self, commands: List[str], **kwargs):
+    def _exec_commands(self, commands: list[str], **kwargs):
         for command in commands:
             formatted_command = command.format(**kwargs)
             LOGGER.debug(f"Running {self.__class__.__name__} command: {formatted_command}")
@@ -596,13 +597,13 @@ class _BackupRestoreOperation(object):
             str: stdin and stdout of executed command
         """
         full_path = self.shell.join_path(self.base_path, path)
-        params = dict(
-            database=database,
-            path=full_path,
-            options=" ".join(self.options.render_args()),
-            binary=self.binary,
-            filename=Path(full_path).name,
-        )
+        params = {
+            "database": database,
+            "path": full_path,
+            "options": " ".join(self.options.render_args()),
+            "binary": self.binary,
+            "filename": Path(full_path).name,
+        }
         self._exec_commands(self.on_start_commands, **params)
         try:
             result = self._exec_commands([self.command], **params)
@@ -627,9 +628,9 @@ class FileBackup(_BackupRestoreOperation):
         cluster (cluster.Cluster): Postgres cluster object
         binary (str): Path to the pg_dump binary
         shell (_BaseShellEnv): shell processor that defines pathing and escaping for the current environment
-        on_start_commands (List[str]): commands to execute prior to launching the backup
+        on_start_commands (list[str]): commands to execute prior to launching the backup
         command (str): main backup command
-        on_finish_commands (List[str]): commands to execute after backup is completed or failed
+        on_finish_commands (list[str]): commands to execute after backup is completed or failed
 
     Example:
         Backup a database schema for tables "a" and "b"
@@ -646,8 +647,8 @@ class FileBackup(_BackupRestoreOperation):
         cluster: cluster.Cluster,
         base_path: str = "",
         binary_path: str = "pg_dump",
-        options: Optional[BackupOptions] = None,
-        shell: Optional[_BaseShellEnv] = None,
+        options: BackupOptions | None = None,
+        shell: _BaseShellEnv | None = None,
     ):
         super().__init__(
             cluster=cluster,
@@ -689,9 +690,9 @@ class GCPBackup(FileBackup):
         options (BackupOptions): backup options represented by the BackupOptions class
         cluster (cluster.Cluster): Postgres cluster object
         binary: Path to the pg_dump binary.
-        on_start_commands (List[str]): commands to execute prior to launching the backup
+        on_start_commands (list[str]): commands to execute prior to launching the backup
         command (str): main backup command
-        on_finish_commands (List[str]): commands to execute after backup is completed or failed
+        on_finish_commands (list[str]): commands to execute after backup is completed or failed
 
     Example:
         Backup schema "public" of database "foo" with no privileges into the bucket gs://my-bucket/
@@ -707,8 +708,8 @@ class GCPBackup(FileBackup):
         cluster: cluster.Cluster,
         bucket: str = "",
         binary_path: str = "pg_dump",
-        options: Optional[BackupOptions] = None,
-        shell: Optional[_BaseShellEnv] = None,
+        options: BackupOptions | None = None,
+        shell: _BaseShellEnv | None = None,
     ):
         super().__init__(
             cluster=cluster, binary_path=binary_path, base_path=bucket, options=options, shell=shell
@@ -731,9 +732,9 @@ class FileRestore(_BackupRestoreOperation):
         options (RestoreOptions): restore options represented by the RestoreOptions class
         cluster: Postgres cluster object
         binary: Path to the pg_restore binary
-        on_start_commands (List[str]): commands to execute prior to launching the restore
+        on_start_commands (list[str]): commands to execute prior to launching the restore
         command (str): main restore command
-        on_finish_commands (List[str]): commands to execute after restore is completed or failed
+        on_finish_commands (list[str]): commands to execute after restore is completed or failed
 
 
     Example:
@@ -757,8 +758,8 @@ class FileRestore(_BackupRestoreOperation):
         cluster: cluster.Cluster,
         base_path: str = "",
         binary_path: str = "pg_restore",
-        options: RestoreOptions = None,
-        shell: Optional[_BaseShellEnv] = None,
+        options: RestoreOptions | None = None,
+        shell: _BaseShellEnv | None = None,
     ):
         super().__init__(
             cluster=cluster,
@@ -800,9 +801,9 @@ class GCPRestore(FileRestore):
         options (RestoreOptions): restore options represented by RestoreOptions class
         cluster: Postgres cluster to execute the restore
         binary: Path to the pg_restore binary.
-        on_start_commands (List[str]): commands to execute prior to launching the restore
+        on_start_commands (list[str]): commands to execute prior to launching the restore
         command (str): main restore command
-        on_finish_commands (List[str]): commands to execute after restore is completed or failed
+        on_finish_commands (list[str]): commands to execute after restore is completed or failed
         temp_path (str): Path to a temporary folder
 
     Example:
@@ -822,8 +823,8 @@ class GCPRestore(FileRestore):
         bucket: str = "",
         binary_path: str = "pg_restore",
         temp_path: str = "/tmp",
-        options: Optional[RestoreOptions] = None,
-        shell: Optional[_BaseShellEnv] = None,
+        options: RestoreOptions | None = None,
+        shell: _BaseShellEnv | None = None,
     ):
         super().__init__(
             cluster=cluster, binary_path=binary_path, base_path=bucket, options=options, shell=shell

@@ -1,2 +1,0 @@
-packaging==23.0 ; python_version >= "3.9" and python_version < "4"
-psycopg2-binary==2.9.5 ; python_version >= "3.9" and python_version < "4"

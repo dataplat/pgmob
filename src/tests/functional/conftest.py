@@ -1,11 +1,13 @@
-from typing import Callable
-from types import ModuleType
-from dataclasses import dataclass
-import pytest
-import docker
 import os
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
+from types import ModuleType
+
+import docker
+import pytest
 from docker.types import ContainerSpec
+
 from pgmob.cluster import Cluster
 
 
@@ -71,9 +73,11 @@ def container(docker_client: docker.DockerClient, container_name, pg_password):
     # wait until pg is ready
     attempts = 0
     while attempts < 30:
-        if container.exec_run("pg_isready").exit_code == 0:
-            if container.exec_run('psql -U postgres -c "select 1"').exit_code == 0:
-                break
+        if (
+            container.exec_run("pg_isready").exit_code == 0
+            and container.exec_run('psql -U postgres -c "select 1"').exit_code == 0
+        ):
+            break
         attempts += 1
         time.sleep(1)
 
@@ -214,7 +218,7 @@ def tablespace(psql, container):
 
 
 @pytest.fixture
-def connect(container, container_name, pg_password):
+def connect(container, hostname, pg_password):
     """Cluster object factory.
 
     Args:
@@ -227,7 +231,7 @@ def connect(container, container_name, pg_password):
         if not adapter:
             adapter = _psycopg2.Psycopg2Adapter(cursor_factory=None)
         return Cluster(
-            host=container_name,
+            host=hostname,
             port=5432,
             user="postgres",
             password=pg_password,

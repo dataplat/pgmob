@@ -8,22 +8,23 @@ server using the adapter, such as ``psycopg2``. A connected Cluster object gives
 - Execute ad-hoc SQL queries and shell commands
 - Run backup/restore operations
 """
-import logging
-from typing import Any, Callable, List, Optional, Tuple, Union
 
-from .os import _BaseShellEnv, ShellEnv, OSCommandResult
-from ._decorators import RefreshProperty, LAZY_PREFIX, get_lazy_property
-from .errors import *
-from .adapters import detect_adapter, NoResultsToFetch, AdapterError
-from .sql import SQL, Composable, Identifier, Literal
+import logging
+from collections.abc import Callable
+from typing import Any
+
+from . import objects, util
+from ._decorators import LAZY_PREFIX, RefreshProperty, get_lazy_property
+from .adapters import AdapterError, NoResultsToFetch, detect_adapter
 from .adapters.base import BaseAdapter, BaseCursor
-from . import objects
-from . import util
+from .errors import PostgresError
+from .os import OSCommandResult, ShellEnv, _BaseShellEnv
+from .sql import SQL, Composable, Identifier, Literal
 
 LOGGER = logging.getLogger(__name__)
 
 
-class _NoAutocommitContextManager(object):
+class _NoAutocommitContextManager:
     def __init__(self, cluster: "Cluster"):
         self.cluster = cluster
         self.autocommit = self.cluster.adapter.get_autocommit()
@@ -39,7 +40,7 @@ class _NoAutocommitContextManager(object):
             self.cluster.adapter.set_autocommit(True)
 
 
-class Cluster(object):
+class Cluster:
     """Provides a management interface for postgres cluster configuration.
 
     Args:
@@ -77,10 +78,10 @@ class Cluster(object):
         self,
         connection=None,
         become=None,
-        adapter: BaseAdapter = None,
-        shell: Optional[_BaseShellEnv] = None,
+        adapter: BaseAdapter | None = None,
+        shell: _BaseShellEnv | None = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         self.shell = shell if shell else ShellEnv()
         self.adapter: BaseAdapter = adapter if adapter else detect_adapter()
@@ -97,9 +98,13 @@ class Cluster(object):
 
     def _initialize(self):
         init_data = self.execute(SQL("SELECT current_database(), version()"))
-        if len(init_data) > 0:
+        if len(init_data) > 0 and len(init_data[0]) >= 2:
             self.current_database = init_data[0][0]
-            dbms, version_string = init_data[0][1].split()[0:2]
+            version_parts = init_data[0][1].split()
+            if len(version_parts) >= 2:
+                dbms, version_string = version_parts[0:2]
+            else:
+                raise PostgresError("Unable to parse database version information")
             if dbms != "PostgreSQL":
                 raise PostgresError("DBMS is not postgres, version not supported")
             version = util.Version(version_string)
@@ -134,7 +139,7 @@ class Cluster(object):
             task (Callable[[BaseCursor], Any]): callable with cursor object as an only argument
 
         Returns:
-            Optional[List[Tuple[Any]]]]: List of tuples returned from the server or None if no rows selected.
+            list[tuple[Any]] | None: List of tuples returned from the server or None if no rows selected.
 
         Example:
             Run a task that fetches a row from a cursor
@@ -175,17 +180,15 @@ class Cluster(object):
         for attr in [attr for attr in lazy_attributes if attr.startswith(LAZY_PREFIX)]:
             setattr(self, attr, RefreshProperty())
 
-    def execute(
-        self, query: Union[Composable, str], params: Union[Tuple[Any], Any] = None
-    ) -> List[Tuple[Any]]:
-        """Execute a query against Postgres server. Transaction would be automatically committed upon completion.
+    def execute(self, query: Composable | str, params: tuple[Any] | Any = None) -> list[tuple[Any]]:
+        r"""Execute a query against Postgres server. Transaction would be automatically committed upon completion.
 
         Args:
-            query (Union[Composable, str]): Query text or a Composable object
-            params (Union[Tuple[Any], Any]): Tuple of parameter values (or a single value) to replace parameters in the query
+            query (Composable | str): Query text or a Composable object
+            params (tuple[Any] | Any): Tuple of parameter values (or a single value) to replace parameters in the query
 
         Returns:
-            List[Tuple[Any]]]: List of tuples returned from the server, or empty list if no rows were selected.
+            list[tuple[Any]]: List of tuples returned from the server, or empty list if no rows were selected.
 
         Raises:
             AdapterError: Whenever the adapter returns an error.
@@ -212,11 +215,8 @@ class Cluster(object):
 
         LOGGER.debug("Executing query: %s", query)
 
-        def execute_task(cursor: BaseCursor) -> Optional[List[Tuple[Any]]]:
-            if params:
-                param_set = params if isinstance(params, tuple) else tuple([params])
-            else:
-                param_set = None
+        def execute_task(cursor: BaseCursor) -> list[tuple[Any]] | None:
+            param_set = (params if isinstance(params, tuple) else (params,)) if params else None
             cursor.execute(query, param_set)
             if cursor.statusmessage:
                 try:
@@ -230,27 +230,27 @@ class Cluster(object):
 
     def terminate(
         self,
-        all_connections: bool = None,
-        databases: List[str] = None,
-        pids: List[int] = None,
-        roles: List[str] = None,
-        exclude_roles: List[str] = None,
-        exclude_databases: List[str] = None,
-        exclude_pids: List[int] = None,
-    ) -> List[int]:
+        all_connections: bool | None = None,
+        databases: list[str] | None = None,
+        pids: list[int] | None = None,
+        roles: list[str] | None = None,
+        exclude_roles: list[str] | None = None,
+        exclude_databases: list[str] | None = None,
+        exclude_pids: list[int] | None = None,
+    ) -> list[int]:
         """Terminates connections based on provided parameters. Will avoid terminating system PIDs and self.
 
         Args:
-            databases (List[str]): names of target databases
-            roles (List[str]): roles which connections should be terminated
-            pids (List[int]): pids to terminate
-            exclude_roles (List[str]): roles to exclude
-            exclude_databases (List[str]): databases to exclude
-            exclude_pids (List[str]): pids to exclude
+            databases (list[str]): names of target databases
+            roles (list[str]): roles which connections should be terminated
+            pids (list[int]): pids to terminate
+            exclude_roles (list[str]): roles to exclude
+            exclude_databases (list[str]): databases to exclude
+            exclude_pids (list[str]): pids to exclude
             all_connections (bool): terminate all connections (except own and system PIDs)
 
         Returns:
-            List[int]: PIDs of the terminated connections
+            list[int]: PIDs of the terminated connections
 
         Example:
             Terminate connections from a specific role to a specific database
@@ -268,7 +268,7 @@ class Cluster(object):
             return SQL(sql).format(SQL(", ").join([Literal(x) for x in in_members]))
 
         sql = SQL("SELECT pid, pg_terminate_backend(pid) FROM pg_stat_activity WHERE {where}")
-        params: List[Tuple[Union[str, int], ...]] = []
+        params: list[tuple[str | int, ...]] = []
         # start collecting where clauses depending on parameters
         # never allow killing system processes or self
         where = [
@@ -296,7 +296,7 @@ class Cluster(object):
             params.append(tuple(exclude_pids))
         # join where clauses using AND
         formatted_sql = sql.format(where=SQL(" AND ").join(where))
-        terminated_pids: List[int] = []
+        terminated_pids: list[int] = []
         result = self.execute(formatted_sql, tuple(params))
         if result:
             terminated_pids.extend([x[0] for x in result])
@@ -534,7 +534,7 @@ class Cluster(object):
         """Postgres large objects"""
         return get_lazy_property(self, "large_objects", lambda: objects.LargeObjectCollection(cluster=self))
 
-    def reassign_owner(self, new_owner: str, owner: str = None, objects: list = None):
+    def reassign_owner(self, new_owner: str, owner: str | None = None, objects: list | None = None):
         """Reassigns ownership of Postgres objects.
         When "objects" parameter is provided, only the ownership for those objects will be changed.
         When both "owner" and "new_owner" are specified, reassigns ownership of all objects owned by "owner".
@@ -567,7 +567,7 @@ class Cluster(object):
             # merge sql code from all pending changes into a single statement,
             # limited by 30k params in one go, and execute it
             statements = []
-            parameters: List[tuple] = []
+            parameters: list[tuple] = []
             while changes:
                 change = changes.pop(0)
                 statements.append(change.sql)

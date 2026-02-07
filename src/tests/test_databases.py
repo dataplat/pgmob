@@ -1,7 +1,9 @@
-import pytest
 from unittest.mock import call
-from pgmob.sql import SQL, Identifier
+
+import pytest
+
 from pgmob import objects
+from pgmob.sql import SQL, Identifier
 
 
 @pytest.fixture
@@ -108,8 +110,8 @@ class TestDatabase:
 
     def test_disable(self, database, cursor, pgmob_tester):
         database.disable()
-        pgmob_tester.assertSql("UPDATE", cursor, statement=0)
-        pgmob_tester.assertSql("False", cursor, statement=3)
+        pgmob_tester.assertSql("UPDATE", cursor, statement=1)
+        pgmob_tester.assertSql("False", cursor, statement=4)
 
     def test_create(self, database: objects.Database, db_cursor, pgmob_tester):
         database.create()

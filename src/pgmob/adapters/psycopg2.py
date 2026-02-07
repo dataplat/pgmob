@@ -1,10 +1,15 @@
-from typing import Any, Callable, Optional, Sequence, Union
-import psycopg2  # type: ignore
-import psycopg2.sql  # type: ignore
-import psycopg2.extras  # type: ignore
-import psycopg2.extensions  # type: ignore
-from . import ProgrammingError, AdapterError, NoResultsToFetch
-from ..sql import SQL, Identifier, Literal, Composable
+from collections.abc import Callable, Sequence
+from typing import Any
+
+# psycopg2 is a third-party library without type stubs
+# Type checking is limited for psycopg2 imports
+import psycopg2
+import psycopg2.extensions
+import psycopg2.extras
+import psycopg2.sql
+
+from ..sql import SQL, Composable, Identifier, Literal
+from . import AdapterError, NoResultsToFetch, ProgrammingError
 from .base import BaseAdapter, BaseCursor, BaseLargeObject
 
 
@@ -35,7 +40,7 @@ class Psycopg2Cursor(BaseCursor):
         """Row count of the most recent execute"""
         return self.cursor.rowcount
 
-    def _convert_query(self, query: Union[Composable, str]) -> Union[psycopg2.sql.Composable, str]:
+    def _convert_query(self, query: Composable | str) -> psycopg2.sql.Composable | str:
         conv_map = {SQL: psycopg2.sql.SQL, Literal: psycopg2.sql.Literal, Identifier: psycopg2.sql.Identifier}
         if isinstance(query, Composable):
             return psycopg2.sql.Composed([conv_map[part.__class__](part.value()) for part in query.compose()])
@@ -57,7 +62,7 @@ class Psycopg2Cursor(BaseCursor):
         """Close the currently open cursor"""
         return self.cursor.close()
 
-    def execute(self, query: Union[Composable, str], params: tuple = None) -> None:
+    def execute(self, query: Composable | str, params: tuple | None = None) -> None:
         """Execute a query with parameters
 
         Args:
@@ -67,11 +72,11 @@ class Psycopg2Cursor(BaseCursor):
         """
         self._try_exec(lambda: self.cursor.execute(self._convert_query(query), params))
 
-    def executemany(self, query: Union[Composable, str], params: Sequence[tuple] = None) -> None:
+    def executemany(self, query: Composable | str, params: Sequence[tuple] | None = None) -> None:
         """Execute a query with multiple parameter sets"""
         self._try_exec(lambda: self.cursor.executemany(self._convert_query(query), params))
 
-    def mogrify(self, query: Union[Composable, str], params: tuple = None) -> bytes:
+    def mogrify(self, query: Composable | str, params: tuple | None = None) -> bytes:
         """Returns a parsed SQL query based on the parameters provided
 
         Returns:
@@ -112,7 +117,8 @@ class Psycopg2LargeObject(BaseLargeObject):
     """
 
     def __init__(self, connection: Any, oid: int, mode: str, *args, **kwargs) -> None:
-        self.lobject = connection.lobject(oid, mode=mode, *args, **kwargs)
+        kwargs["mode"] = mode
+        self.lobject = connection.lobject(oid, *args, **kwargs)
 
     @property
     def closed(self) -> bool:
@@ -138,7 +144,7 @@ class Psycopg2LargeObject(BaseLargeObject):
             int: number of bytes written"""
         return self.lobject.write(data)
 
-    def read(self) -> Union[str, bytes]:
+    def read(self) -> str | bytes:
         """Read large object
 
         Returns:
@@ -151,7 +157,7 @@ class Psycopg2LargeObject(BaseLargeObject):
         self.lobject.unlink()
 
     def __del__(self):
-        if not self.lobject.closed:
+        if hasattr(self, "lobject") and not self.lobject.closed:
             self.lobject.close()
 
 
@@ -162,7 +168,7 @@ class Psycopg2Adapter(BaseAdapter):
 
     def __init__(
         self,
-        cursor_factory: Optional[psycopg2.extras.DictCursorBase] = None,
+        cursor_factory: psycopg2.extras.DictCursorBase | None = None,
     ) -> None:
         self._cursor_factory = cursor_factory
         self.connection: Any = None

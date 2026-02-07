@@ -1,20 +1,21 @@
 import functools
 import inspect
-from typing import Any, Callable, TypeVar
 import warnings
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 LAZY_PREFIX = "_pgmlazy_"
 
 
-class RefreshProperty(object):
+class RefreshProperty:
     """An instance of this class marks a lazy-evaluated property as requiring a refresh"""
 
     def __eq__(self, __o: object) -> bool:
         return self.__class__ == __o.__class__
 
 
-def get_lazy_property(obj: object, name: str, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
+def get_lazy_property[T](obj: object, name: str, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
     """Retrieves a lazy property value"""
     attribute = LAZY_PREFIX + name
     has_attribute = hasattr(obj, attribute)
@@ -53,16 +54,21 @@ def deprecated(instructions):
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            message = "Call to deprecated function {}. {}".format(func.__name__, instructions)
+            message = f"Call to deprecated function {func.__name__}. {instructions}"
 
-            frame = inspect.currentframe().f_back
+            frame = inspect.currentframe()
+            if frame is not None:
+                frame = frame.f_back
 
-            warnings.warn_explicit(
-                message,
-                category=DeprecatedWarning,
-                filename=inspect.getfile(frame.f_code),
-                lineno=frame.f_lineno,
-            )
+            if frame is not None:
+                warnings.warn_explicit(
+                    message,
+                    category=DeprecatedWarning,
+                    filename=inspect.getfile(frame.f_code),
+                    lineno=frame.f_lineno,
+                )
+            else:
+                warnings.warn(message, category=DeprecatedWarning, stacklevel=2)
 
             return func(*args, **kwargs)
 

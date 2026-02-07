@@ -1,14 +1,17 @@
 """HBA rules as collection of strings that ignore whitespace on comparison"""
+
+from __future__ import annotations
+
 import collections
 import re
-from typing import Any, Iterable, List, Optional, Tuple, Union, TYPE_CHECKING
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, override
 
 from ..adapters import ProgrammingError
-from ..sql import SQL, Literal
 from ..adapters.base import BaseCursor
-from ..errors import *
+from ..errors import PostgresError
+from ..sql import SQL, Literal
 from . import generic
-
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
@@ -30,10 +33,10 @@ class HBARule(str):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def _get_field(self, name: str) -> Optional[str]:
+    def _get_field(self, name: str) -> str | None:
         fields = self.fields
         field_map = {}
-        auth_options: List[str] = []
+        auth_options: list[str] = []
         for i in range(len(fields)):
             if fields[i].startswith("#"):
                 # anything after is a comment
@@ -56,7 +59,7 @@ class HBARule(str):
             if i == 4:
                 if field_map["type"] == "local":
                     auth_options.append(fields[i])
-                elif re.match("\\d{1,3}\.\\d{1,3}\.\\d{1,3}\\.\\d{1,3}", fields[i]):
+                elif re.match("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}", fields[i]):
                     field_map["mask"] = fields[i]
                 else:
                     field_map["auth_method"] = fields[i]
@@ -74,43 +77,43 @@ class HBARule(str):
         if name == "auth_options":
             return " ".join(auth_options)
         else:
-            return field_map.get(name, None)
+            return field_map.get(name)
 
     @property
-    def fields(self) -> List[str]:
+    def fields(self) -> list[str]:
         """A tuple of pg_hba.conf fields extracted from the record"""
         return self.split()
 
     @property
-    def type(self) -> Optional[str]:
+    def type(self) -> str | None:
         """The type field"""
         return self._get_field("type")
 
     @property
-    def database(self) -> Optional[str]:
+    def database(self) -> str | None:
         """The database field"""
         return self._get_field("database")
 
     @property
-    def user(self) -> Optional[str]:
+    def user(self) -> str | None:
         """The user field"""
         return self._get_field("user")
 
     @property
-    def address(self) -> Optional[str]:
+    def address(self) -> str | None:
         """The address field"""
         return self._get_field("address")
 
     @property
-    def mask(self) -> Optional[str]:
+    def mask(self) -> str | None:
         return self._get_field("mask")
 
     @property
-    def auth_method(self) -> Optional[str]:
+    def auth_method(self) -> str | None:
         return self._get_field("auth_method")
 
     @property
-    def auth_options(self) -> Optional[str]:
+    def auth_options(self) -> str | None:
         return self._get_field("auth_options")
 
 
@@ -125,7 +128,7 @@ class HBARuleCollection(collections.UserList[HBARule], generic._ClusterBound):
         cluster (str): Postgres cluster object
     """
 
-    def __init__(self, cluster: "Cluster"):
+    def __init__(self, cluster: Cluster):
         collections.UserList.__init__(self, [])
         generic._ClusterBound.__init__(self, cluster=cluster)
         if cluster:
@@ -163,7 +166,8 @@ class HBARuleCollection(collections.UserList[HBARule], generic._ClusterBound):
         lines = self.cluster.execute_with_cursor(task)
         self.data.extend([HBARule(x) for x in lines])
 
-    def __contains__(self, o: object) -> bool:
+    @override
+    def __contains__(self, o: object) -> bool:  # type: ignore[override]  # Intentional: accepts any object, converts to HBARule
         return HBARule(o) in self.data
 
     def __iadd__(self, other: Iterable[HBARule]):
@@ -174,7 +178,8 @@ class HBARuleCollection(collections.UserList[HBARule], generic._ClusterBound):
         self.data.extend([HBARule(r) for r in other])
         return self
 
-    def extend(self, item: Iterable[HBARule]):
+    @override
+    def extend(self, item: Iterable[HBARule]):  # type: ignore[override]  # Intentional: more specific than parent's Iterable[HBARule]
         """Add multiple HBA rules to the collection
 
         Args:
@@ -182,35 +187,36 @@ class HBARuleCollection(collections.UserList[HBARule], generic._ClusterBound):
         """
         self.data.extend([HBARule(x) for x in item])
 
-    def append(self, item: Union[str, HBARule]):
+    def append(self, item: str | HBARule):
         """Append an HBA rule to the collection
 
         Args:
-            item(Union[str, HBARule]): A line from pg_hba or HBARule object
+            item(str | HBARule): A line from pg_hba or HBARule object
         """
         self.data.append(HBARule(item))
 
-    def remove(self, item: Union[str, HBARule]):
+    def remove(self, item: str | HBARule):
         """Remove an HBA rule from the collection
 
         Args:
-            item(Union[str, HBARule]): A line from pg_hba or HBARule object
+            item(str | HBARule): A line from pg_hba or HBARule object
         """
         self.data.remove(HBARule(item))
 
-    def index(self, item: Union[str, HBARule], *args) -> int:
+    def index(self, item: str | HBARule, *args) -> int:
         """Return a first index of a matching HBA rule from the collection
 
         Args:
-            item(Union[str, HBARule]): A line from pg_hba or HBARule object
+            item(str | HBARule): A line from pg_hba or HBARule object
         """
         return self.data.index(HBARule(item), *args)
 
-    def insert(self, index: int, item: Union[str, HBARule]):
+    @override
+    def insert(self, index: int, item: str | HBARule):  # type: ignore[override]  # Intentional: accepts str | HBARule, not just HBARule
         """Insert an HBA rule into the rule collection with a certain index
 
         Args:
-            item(Union[str, HBARule]): A line from pg_hba or HBARule object
+            item(str | HBARule): A line from pg_hba or HBARule object
             index(int): Position to use
         """
         self.data.insert(index, HBARule(item))

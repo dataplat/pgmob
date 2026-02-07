@@ -1,15 +1,22 @@
-ARG PYTHON_VERSION=3.10-bullseye
-FROM python:$PYTHON_VERSION
+ARG PYTHON_VERSION=3.13-bookworm
+FROM python:${PYTHON_VERSION}
 
-# Allow the vscode user to pip install globally w/o sudo
-# ENV PIP_TARGET=/usr/local/pip-global
-# ENV PYTHONPATH=${PIP_TARGET}:${PYTHONPATH}
-# ENV PATH=${PIP_TARGET}/bin:${PATH}
-# RUN if ! cat /etc/group | grep -e "^pip-global:" > /dev/null 2>&1; then groupadd -r pip-global; fi \
-#     && usermod -a -G pip-global vscode \
-#     && umask 0002 && mkdir -p ${PIP_TARGET} \
-#     && chown :pip-global ${PIP_TARGET} \
-#     && ( [ ! -f "/etc/profile.d/00-restore-env.sh" ] || sed -i -e "s/export PATH=/export PATH=\/usr\/local\/pip-global:/" /etc/profile.d/00-restore-env.sh )
+# Install system dependencies
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends \
+    git \
+    curl \
+    docker.io \
+    postgresql-client \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip install poetry
-RUN poetry config virtualenvs.create false
+# Install UV
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
+
+# Set working directory
+WORKDIR /workspace
+
+# Configure git to trust the workspace
+RUN git config --global --add safe.directory /workspace

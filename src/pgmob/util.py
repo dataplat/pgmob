@@ -1,17 +1,16 @@
 """Internal module utilities."""
-from typing import Callable, Dict, List, Sequence, Type, TypeVar
-from pgmob.sql import SQL
-from pathlib import Path
+
 import re
-from functools import reduce
 from collections import defaultdict
+from collections.abc import Callable, Sequence
+from pathlib import Path
+
 from packaging.version import Version as _Version
 
+from pgmob.sql import SQL
 
-_T = TypeVar("_T")
 
-
-def group_by(key: Callable[..., str], seq: Sequence[_T]) -> Dict[str, List[_T]]:
+def group_by[T](key: Callable[..., str], seq: Sequence[T]) -> dict[str, list[T]]:
     """Groups a list by key
 
     Args:
@@ -21,7 +20,11 @@ def group_by(key: Callable[..., str], seq: Sequence[_T]) -> Dict[str, List[_T]]:
     Returns:
         dict: a dictionary grouped by keys
     """
-    return reduce(lambda grp, val: grp[key(val)].append(val) or grp, seq, defaultdict(list))  # type: ignore
+    # Type checker needs explicit annotation for defaultdict with lambda in reduce
+    result: dict[str, list[T]] = defaultdict(list)
+    for val in seq:
+        result[key(val)].append(val)
+    return result
 
 
 class Version(_Version):
@@ -38,14 +41,14 @@ class Version(_Version):
     def __new__(cls, version):
         try:
             parts = [int(x) for x in version.split(".")]
-        except:
+        except (ValueError, AttributeError):
             raise ValueError("Unsupported version string. Only dot-separated numbers are supported.")
         if len(parts) == 0:
             raise ValueError("Empty version string")
         return _Version.__new__(cls)
 
 
-def get_sql(name: str, version: Version = None) -> SQL:
+def get_sql(name: str, version: Version | None = None) -> SQL:
     """Retrieves SQL code from a file in a 'sql' folder
 
     Args:

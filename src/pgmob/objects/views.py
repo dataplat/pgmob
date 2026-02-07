@@ -1,10 +1,13 @@
 """Postgresql view objects"""
-from typing import TYPE_CHECKING, Optional
-from ..sql import SQL
-from ..errors import *
-from .. import util
-from . import generic
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from .. import util
+from ..errors import PostgresError
+from ..sql import SQL
+from . import generic
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
@@ -33,10 +36,10 @@ class View(generic._DynamicObject, generic._CollectionChild):
         self,
         name: str,
         schema: str = "public",
-        owner: str = None,
-        cluster: "Cluster" = None,
-        parent: "ViewCollection" = None,
-        oid: Optional[int] = None,
+        owner: str | None = None,
+        cluster: Cluster | None = None,
+        parent: ViewCollection | None = None,
+        oid: int | None = None,
     ):
         """Initialize a new View object"""
         super().__init__(kind="VIEW", cluster=cluster, oid=oid, name=name, schema=schema)
@@ -67,7 +70,7 @@ class View(generic._DynamicObject, generic._CollectionChild):
             mapper.map(self)
 
     @property
-    def owner(self) -> Optional[str]:
+    def owner(self) -> str | None:
         return self._owner
 
     @owner.setter
@@ -107,7 +110,7 @@ class ViewCollection(generic._BaseCollection[View]):
     For views outside of the 'public' schema, index becomes "schemaname.tablename".
     """
 
-    def __init__(self, cluster: "Cluster"):
+    def __init__(self, cluster: Cluster):
         super().__init__(cluster=cluster)
         if cluster:
             self.refresh()

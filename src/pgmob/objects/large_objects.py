@@ -1,9 +1,14 @@
 """Postgresql largeobject objects"""
-from typing import TYPE_CHECKING, Optional
-from pgmob.sql import SQL, Literal
-from pgmob.adapters.base import BaseLargeObject
-from pgmob.errors import *
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from pgmob import util
+from pgmob.adapters.base import BaseLargeObject
+from pgmob.errors import PostgresError
+from pgmob.sql import SQL, Literal
+
 from . import generic
 
 if TYPE_CHECKING:
@@ -27,10 +32,10 @@ class LargeObject(generic._DynamicObject, generic._CollectionChild):
 
     def __init__(
         self,
-        oid: int = None,
-        cluster: "Cluster" = None,
-        parent: "LargeObjectCollection" = None,
-        owner: str = None,
+        oid: int | None = None,
+        cluster: Cluster | None = None,
+        parent: LargeObjectCollection | None = None,
+        owner: str | None = None,
     ):
         """Initialize a new LargeObject object"""
         super().__init__(kind="LARGE OBJECT", cluster=cluster, oid=oid, name=str(oid))
@@ -42,6 +47,8 @@ class LargeObject(generic._DynamicObject, generic._CollectionChild):
 
     def _with_lobject(self, task, mode="rw"):
         cluster = self.cluster
+        if self._oid is None:
+            raise PostgresError("Large object OID is not set")
         with cluster._no_autocommit():
             lo = cluster.adapter.lobject(self._oid, mode=mode)
             result = task(lo)
@@ -49,7 +56,7 @@ class LargeObject(generic._DynamicObject, generic._CollectionChild):
             return result
 
     @property
-    def owner(self) -> Optional[str]:
+    def owner(self) -> str | None:
         return self._owner
 
     @owner.setter

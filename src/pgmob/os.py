@@ -1,11 +1,13 @@
 """PGMob will try to abstract OS commands using classes that provide support for a specific OS."""
-from abc import abstractmethod
+
 import shlex
+from abc import abstractmethod
+
 from . import util
 from .errors import PostgresShellCommandError
 
 
-class _BaseShellEnv(object):
+class _BaseShellEnv:
     """Base OS class interface that outlines necessary shell-dependent operations"""
 
     @staticmethod
@@ -65,7 +67,7 @@ class ShellEnv(_BaseShellEnv):
         return util.get_shell("run_postgres_command")
 
 
-class OSCommandResult(object):
+class OSCommandResult:
     """Results of the OS command execution
 
     Attributes:

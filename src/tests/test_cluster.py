@@ -1,11 +1,13 @@
 from unittest.mock import MagicMock, call
-from pytest_mock import MockerFixture
-from pgmob.sql import SQL, Identifier
-from pgmob.cluster import Cluster
-from pgmob.objects import generic
-from pgmob.errors import PostgresShellCommandError
-from pgmob import objects, util
+
 import pytest
+from pytest_mock import MockerFixture
+
+from pgmob import objects, util
+from pgmob.cluster import Cluster
+from pgmob.errors import PostgresShellCommandError
+from pgmob.objects import generic
+from pgmob.sql import SQL, Identifier
 
 
 class TestCluster:

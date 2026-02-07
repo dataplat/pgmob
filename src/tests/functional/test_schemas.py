@@ -1,5 +1,7 @@
 import re
+
 import pytest
+
 from pgmob import objects
 
 
@@ -12,7 +14,7 @@ def schemas(psql, db, cluster_db):
     ]
     for s in schema_list:
         psql(f'CREATE SCHEMA "{s}"', db=db)
-    psql(f'CREATE TABLE "tmp-2".a (a int)', db=db)
+    psql('CREATE TABLE "tmp-2".a (a int)', db=db)
 
     schemas = objects.SchemaCollection(cluster=cluster_db)
     yield schemas

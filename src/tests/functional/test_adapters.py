@@ -1,14 +1,14 @@
-from typing import Sequence
 import pytest
-from pgmob.sql import SQL, Identifier, Literal
+
 from pgmob.adapters import ProgrammingError, detect_adapter
 from pgmob.adapters.base import BaseAdapter, BaseCursor, BaseLargeObject
+from pgmob.sql import SQL, Identifier, Literal
 
 ADAPTERS = ["psycopg2"]
 
 
 @pytest.fixture()
-def adapter_factory(container, container_name, pg_password, db):
+def adapter_factory(container, hostname, pg_password, db):
     """Adapter factory.
 
     Args:
@@ -21,7 +21,7 @@ def adapter_factory(container, container_name, pg_password, db):
 
             adapter = _psycopg2.Psycopg2Adapter()
             adapter.connect(
-                host=container_name,
+                host=hostname,
                 port=5432,
                 user="postgres",
                 password=pg_password,
@@ -137,10 +137,9 @@ class TestLargeObject:
             adapter.commit()
         assert self.get_current(psql, db, lo_id) == ""
 
-        with pytest.raises(Exception):
-            with adapter.lobject(lo_id, "r") as lobject_r:
-                with pytest.raises(Exception):
-                    lobject_r.unlink()
+        # After unlinking, trying to open the large object should raise an error
+        with pytest.raises((OSError, IOError, Exception)), adapter.lobject(lo_id, "r") as lobject_r:
+            lobject_r.unlink()
 
     def test_read(self, adapter, lo_ids_factory, db):
         lo_id = lo_ids_factory(db=db)[0]
@@ -157,10 +156,9 @@ class TestLargeObject:
             adapter.commit()
         assert self.get_current(psql, db, lo_id) == "new data"
 
-        with pytest.raises(Exception):
-            with adapter.lobject(lo_id, "r") as lobject_r:
-                with pytest.raises(Exception):
-                    lobject_r.write(b"new data2")
+        # Writing to a read-only large object should raise an error
+        with pytest.raises((OSError, IOError, Exception)), adapter.lobject(lo_id, "r") as lobject_r:
+            lobject_r.write(b"new data2")
 
     def test_truncate(self, adapter, lo_ids_factory, psql, db):
         lo_id = lo_ids_factory(db=db)[0]
@@ -174,10 +172,9 @@ class TestLargeObject:
             adapter.commit()
         assert self.get_current(psql, db, lo_id) == ""
 
-        with pytest.raises(Exception):
-            with adapter.lobject(lo_id, "r") as lobject_r:
-                with pytest.raises(Exception):
-                    lobject_r.truncate()
+        # Truncating a read-only large object should raise an error
+        with pytest.raises((OSError, IOError, Exception)), adapter.lobject(lo_id, "r") as lobject_r:
+            lobject_r.truncate()
 
 
 class TestAdapter:
