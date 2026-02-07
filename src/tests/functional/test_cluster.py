@@ -1,7 +1,9 @@
-from pgmob import objects, util, Cluster
-from pgmob.errors import PostgresShellCommandError
-import pytest
 import doctest
+
+import pytest
+
+from pgmob import Cluster, objects, util
+from pgmob.errors import PostgresShellCommandError
 
 
 @pytest.fixture

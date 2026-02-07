@@ -1,8 +1,10 @@
 from unittest.mock import call
+
 import pytest
-from pgmob.sql import SQL, Identifier
+
 from pgmob import objects
 from pgmob.objects.procedures import _BaseProcedure
+from pgmob.sql import SQL, Identifier
 from pgmob.util import Version
 
 

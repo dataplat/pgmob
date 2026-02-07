@@ -1,9 +1,8 @@
-"""Adapters are wrappers around SQL Providers, which translate internal module syntax into the proper Provider syntax
-"""
+"""Adapters are wrappers around SQL Providers, which translate internal module syntax into the proper Provider syntax"""
 
 from typing import TYPE_CHECKING
-from .errors import *
 
+from .errors import AdapterError, NoResultsToFetch, ProgrammingError
 
 ADAPTERS = [(".psycopg2", "Psycopg2Adapter")]
 """Use the following variable to register adapters for autodiscovery.
@@ -31,7 +30,7 @@ def detect_adapter() -> "BaseAdapter":
     for module, name in ADAPTERS:
         try:
             adapter_module = import_module(module, package="pgmob.adapters")
-        except:
+        except (ImportError, ModuleNotFoundError):
             pass
         else:
             return getattr(adapter_module, name)()

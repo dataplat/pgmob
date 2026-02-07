@@ -3,8 +3,8 @@ classes are eventually decoded by adapters into SQL statements with appropriate 
 """
 
 import string
-
-from typing import Generator, List, Sequence, Union
+from collections.abc import Generator, Sequence
+from typing import List, Union
 
 
 class Composable:
@@ -74,16 +74,14 @@ class Composed(Composable):
     def _process_parts(self, parts: Union[List[Composable], "Composed"]) -> Generator[_Singleton, None, None]:
         for part in iter(parts):
             if isinstance(part, Composed):
-                for part in self._process_parts(part):
-                    yield part
+                yield from self._process_parts(part)
             elif isinstance(part, _Singleton):
                 yield part
             else:
-                raise TypeError("Unexpected type " "%s" "", part.__class__.__name__)
+                raise TypeError("Unexpected type %s", part.__class__.__name__)
 
     def __iter__(self) -> Generator[_Singleton, None, None]:
-        for part in iter(self._parts):
-            yield part
+        yield from iter(self._parts)
 
     def __len__(self) -> int:
         return len(self._parts)
@@ -150,7 +148,7 @@ class SQL(_Singleton):
         formatter = string.Formatter()
         parts = []
         field_counter = -1
-        for text, field_name, format_spec, conversion in formatter.parse(str(self._value)):
+        for text, field_name, _format_spec, _conversion in formatter.parse(str(self._value)):
             parts.append(SQL(text))
             if field_name is not None:
                 if field_name:

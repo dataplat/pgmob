@@ -8,22 +8,22 @@ server using the adapter, such as ``psycopg2``. A connected Cluster object gives
 - Execute ad-hoc SQL queries and shell commands
 - Run backup/restore operations
 """
+
 import logging
 from typing import Any, Callable, List, Optional, Tuple, Union
 
-from .os import _BaseShellEnv, ShellEnv, OSCommandResult
-from ._decorators import RefreshProperty, LAZY_PREFIX, get_lazy_property
-from .errors import *
-from .adapters import detect_adapter, NoResultsToFetch, AdapterError
-from .sql import SQL, Composable, Identifier, Literal
+from . import objects, util
+from ._decorators import LAZY_PREFIX, RefreshProperty, get_lazy_property
+from .adapters import AdapterError, NoResultsToFetch, detect_adapter
 from .adapters.base import BaseAdapter, BaseCursor
-from . import objects
-from . import util
+from .errors import PostgresError
+from .os import OSCommandResult, ShellEnv, _BaseShellEnv
+from .sql import SQL, Composable, Identifier, Literal
 
 LOGGER = logging.getLogger(__name__)
 
 
-class _NoAutocommitContextManager(object):
+class _NoAutocommitContextManager:
     def __init__(self, cluster: "Cluster"):
         self.cluster = cluster
         self.autocommit = self.cluster.adapter.get_autocommit()
@@ -39,7 +39,7 @@ class _NoAutocommitContextManager(object):
             self.cluster.adapter.set_autocommit(True)
 
 
-class Cluster(object):
+class Cluster:
     """Provides a management interface for postgres cluster configuration.
 
     Args:
@@ -77,10 +77,10 @@ class Cluster(object):
         self,
         connection=None,
         become=None,
-        adapter: BaseAdapter = None,
+        adapter: Optional[BaseAdapter] = None,
         shell: Optional[_BaseShellEnv] = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         self.shell = shell if shell else ShellEnv()
         self.adapter: BaseAdapter = adapter if adapter else detect_adapter()
@@ -97,9 +97,13 @@ class Cluster(object):
 
     def _initialize(self):
         init_data = self.execute(SQL("SELECT current_database(), version()"))
-        if len(init_data) > 0:
+        if len(init_data) > 0 and len(init_data[0]) >= 2:
             self.current_database = init_data[0][0]
-            dbms, version_string = init_data[0][1].split()[0:2]
+            version_parts = init_data[0][1].split()
+            if len(version_parts) >= 2:
+                dbms, version_string = version_parts[0:2]
+            else:
+                raise PostgresError("Unable to parse database version information")
             if dbms != "PostgreSQL":
                 raise PostgresError("DBMS is not postgres, version not supported")
             version = util.Version(version_string)
@@ -178,7 +182,7 @@ class Cluster(object):
     def execute(
         self, query: Union[Composable, str], params: Union[Tuple[Any], Any] = None
     ) -> List[Tuple[Any]]:
-        """Execute a query against Postgres server. Transaction would be automatically committed upon completion.
+        r"""Execute a query against Postgres server. Transaction would be automatically committed upon completion.
 
         Args:
             query (Union[Composable, str]): Query text or a Composable object
@@ -213,10 +217,7 @@ class Cluster(object):
         LOGGER.debug("Executing query: %s", query)
 
         def execute_task(cursor: BaseCursor) -> Optional[List[Tuple[Any]]]:
-            if params:
-                param_set = params if isinstance(params, tuple) else tuple([params])
-            else:
-                param_set = None
+            param_set = (params if isinstance(params, tuple) else (params,)) if params else None
             cursor.execute(query, param_set)
             if cursor.statusmessage:
                 try:
@@ -230,13 +231,13 @@ class Cluster(object):
 
     def terminate(
         self,
-        all_connections: bool = None,
-        databases: List[str] = None,
-        pids: List[int] = None,
-        roles: List[str] = None,
-        exclude_roles: List[str] = None,
-        exclude_databases: List[str] = None,
-        exclude_pids: List[int] = None,
+        all_connections: Optional[bool] = None,
+        databases: Optional[List[str]] = None,
+        pids: Optional[List[int]] = None,
+        roles: Optional[List[str]] = None,
+        exclude_roles: Optional[List[str]] = None,
+        exclude_databases: Optional[List[str]] = None,
+        exclude_pids: Optional[List[int]] = None,
     ) -> List[int]:
         """Terminates connections based on provided parameters. Will avoid terminating system PIDs and self.
 
@@ -534,7 +535,7 @@ class Cluster(object):
         """Postgres large objects"""
         return get_lazy_property(self, "large_objects", lambda: objects.LargeObjectCollection(cluster=self))
 
-    def reassign_owner(self, new_owner: str, owner: str = None, objects: list = None):
+    def reassign_owner(self, new_owner: str, owner: Optional[str] = None, objects: Optional[list] = None):
         """Reassigns ownership of Postgres objects.
         When "objects" parameter is provided, only the ownership for those objects will be changed.
         When both "owner" and "new_owner" are specified, reassigns ownership of all objects owned by "owner".

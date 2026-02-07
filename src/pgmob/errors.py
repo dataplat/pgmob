@@ -1,4 +1,5 @@
 """A list of PGMob errors raised by the module"""
+
 import logging
 
 

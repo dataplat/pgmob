@@ -24,14 +24,17 @@ Baseline for all contributions:
     * Attributes: for public classes
     * Returns: return type and description
     * Example: how to use and expected output
-* Code formatter: `black`. All submitted code should be formatted with `black` using the settings in `pyproject.toml`
-* Typing validations: `mypy`. The code should have necessary typing hints for any code in `src/pgmob`.
+* Code formatter: `ruff format`. All submitted code should be formatted with Ruff using the settings in `pyproject.toml`
+* Linter: `ruff check`. Code should pass all Ruff linting checks.
+* Type checker: `ty check`. The code should have necessary typing hints for any code in `src/pgmob`.
     * Lists, Dicts or any Generic types should specify the member type in all cases.
     * Use `Union` or a parent class when multiple types are involved.
     * Try to avoid using `Any` at all costs.
 * VSCode recommended plugins:
     * Python
     * Pylance
+    * Ruff
+    * ty
     * Dev Containers
 
 ## Tests
@@ -54,9 +57,8 @@ Use the following guidelines when writing tests:
 ### Executing the tests
 
 ```shell
-$ poetry install
-$ cd src
-$ pytest
+$ uv sync --all-extras
+$ uv run pytest
 ```
 
 ## Building the docs
@@ -65,8 +67,8 @@ Build the docs in the docs directory using Sphinx.
 
 ```shell
 $ cd docs
-$ poetry install
-$ poetry run make html
+$ uv sync
+$ uv run make html
 ```
 
 Open _build/html/index.html in your browser to view the docs.

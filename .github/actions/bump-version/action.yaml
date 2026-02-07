@@ -1,4 +1,4 @@
-name: Poetry Publish
+name: UV Bump Version
 description: Publish package to PyPI
 branding:
   icon: package

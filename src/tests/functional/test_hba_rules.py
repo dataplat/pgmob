@@ -20,7 +20,7 @@ class TestHBARules:
         rules.refresh()
         assert "local postgres postgres any" in rules
         assert "local   postgres   postgres   any" in container.exec_run(
-            f"cat /var/lib/postgresql/data/pg_hba.conf"
+            "cat /var/lib/postgresql/data/pg_hba.conf"
         ).output.decode("utf8").split("\n")
         # remove rule
         rules.remove(objects.HBARule(rule))
@@ -28,5 +28,5 @@ class TestHBARules:
         rules.refresh()
         assert "local postgres postgres any" not in rules
         assert "local   postgres   postgres   any" not in container.exec_run(
-            f"cat /var/lib/postgresql/data/pg_hba.conf"
+            "cat /var/lib/postgresql/data/pg_hba.conf"
         ).output.decode("utf8").split("\n")

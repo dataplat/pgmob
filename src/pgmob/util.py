@@ -1,12 +1,15 @@
 """Internal module utilities."""
-from typing import Callable, Dict, List, Sequence, Type, TypeVar
-from pgmob.sql import SQL
-from pathlib import Path
+
 import re
-from functools import reduce
 from collections import defaultdict
+from collections.abc import Sequence
+from functools import reduce
+from pathlib import Path
+from typing import Callable, Dict, List, Optional, TypeVar
+
 from packaging.version import Version as _Version
 
+from pgmob.sql import SQL
 
 _T = TypeVar("_T")
 
@@ -38,14 +41,14 @@ class Version(_Version):
     def __new__(cls, version):
         try:
             parts = [int(x) for x in version.split(".")]
-        except:
+        except (ValueError, AttributeError):
             raise ValueError("Unsupported version string. Only dot-separated numbers are supported.")
         if len(parts) == 0:
             raise ValueError("Empty version string")
         return _Version.__new__(cls)
 
 
-def get_sql(name: str, version: Version = None) -> SQL:
+def get_sql(name: str, version: Optional[Version] = None) -> SQL:
     """Retrieves SQL code from a file in a 'sql' folder
 
     Args:

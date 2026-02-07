@@ -1,10 +1,11 @@
 """Postgresql table objects"""
-from typing import TYPE_CHECKING, Optional
-from ..sql import SQL, Identifier
-from ..errors import *
-from .. import util
-from . import generic
 
+from typing import TYPE_CHECKING, Optional
+
+from .. import util
+from ..errors import PostgresError
+from ..sql import SQL, Identifier
+from . import generic
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
@@ -35,9 +36,9 @@ class Table(generic._DynamicObject, generic._CollectionChild):
         self,
         name: str,
         schema: str = "public",
-        owner: str = None,
-        cluster: "Cluster" = None,
-        parent: "TableCollection" = None,
+        owner: Optional[str] = None,
+        cluster: Optional["Cluster"] = None,
+        parent: Optional["TableCollection"] = None,
         oid: Optional[int] = None,
     ):
         """Initialize a new Table object"""

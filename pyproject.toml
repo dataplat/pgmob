@@ -1,45 +1,139 @@
-[tool.poetry]
+[project]
 name = "pgmob"
-version = "0.1.3a0"
+version = "0.2.0-dev"
 description = "Postgres Managed Objects - a Postgres database management interface"
-authors = ["Kirill Kravtsov <nvarscar@gmail.com>"]
-packages = [
-    { include = "pgmob", from = "src" },
+authors = [
+    {name = "Kirill Kravtsov", email = "nvarscar@gmail.com"}
 ]
-include = ["src/pgmob/scripts/*"]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-license = "MIT"
-readme = "README.md"
-homepage = "https://github.com/dataplat/pgmob/"
-repository = "https://github.com/dataplat/pgmob"
-documentation = "https://pgmob.readthedocs.io/en/latest/"
-keywords = ["postgres", "sql", "backup", "restore"]
+keywords = ["postgres", "postgresql", "sql", "backup", "restore", "database", "management"]
+dependencies = [
+    "packaging>=21.3",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.9,<4"
-psycopg2-binary = {version = ">=2.8.5,<3", optional = true}
-psycopg2 = {version = ">=2.8.5,<3", optional = true}
-packaging = ">=21.3"
+[project.optional-dependencies]
+psycopg2 = ["psycopg2>=2.9.5,<3"]
+psycopg2-binary = ["psycopg2-binary>=2.9.5,<3"]
+dev = [
+    "pytest>=7.1.1",
+    "pytest-cov>=3.0.0",
+    "pytest-mock>=3.7.0",
+    "pytest-asyncio>=0.21.0",
+    "docker>=6.0.0",
+    "ruff>=0.1.0",
+    "ty>=0.0.15",
+]
 
-[tool.poetry.dev-dependencies]
-pytest = "^7.1.1"
-pytest-cov = "^3.0.0"
-pytest-mock = "^3.7.0"
-black = "^22.3.0"
-docker = "^6.0.0"
-mypy = "^0.971"
+[project.urls]
+Homepage = "https://github.com/dataplat/pgmob/"
+Repository = "https://github.com/dataplat/pgmob"
+Documentation = "https://pgmob.readthedocs.io/en/latest/"
+"Bug Tracker" = "https://github.com/dataplat/pgmob/issues"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.extras]
-psycopg2-binary = ["psycopg2-binary"]
-psycopg2 = ["psycopg2"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/pgmob"]
 
-[tool.black]
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.ruff]
 line-length = 110
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+    "B904",  # raise from
+    "ARG002", # unused method argument
+    # TODO: Remove these when upgrading to Python 3.10+
+    # Python 3.9 requires `from __future__ import annotations` to use PEP 585 (list[str] instead of List[str])
+    # For now, keep using typing.List, typing.Dict, etc. for compatibility
+    "UP006", # Use PEP 585 (list instead of List) - requires Python 3.9+ with __future__ annotations
+    "UP035", # Import from typing instead of collections.abc - requires Python 3.9+ with __future__ annotations
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # unused imports
+"src/tests/**" = ["ARG001", "ARG002", "F403", "F405", "E711", "E712"]  # test patterns
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+
+[tool.pytest.ini_options]
+testpaths = ["src/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--showlocals",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow tests",
+    "asyncio: Async tests",
+]
+
+[tool.coverage.run]
+source = ["src/pgmob"]
+omit = [
+    "*/tests/*",
+    "*/conftest.py",
+    "*/__pycache__/*",
+]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+precision = 2
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"

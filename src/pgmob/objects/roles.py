@@ -1,12 +1,13 @@
 """Postgresql roles"""
+
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
-from ..adapters import AdapterError
-from ..sql import SQL, Composable, Literal, Identifier
-from ..errors import *
-from .. import util
-from . import generic
 
+from .. import util
+from ..adapters import AdapterError
+from ..errors import PostgresError
+from ..sql import SQL, Composable, Identifier, Literal
+from . import generic
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
@@ -50,8 +51,8 @@ class Role(generic._DynamicObject, generic._CollectionChild):
     def __init__(
         self,
         name: str,
-        password: str = None,
-        cluster: "Cluster" = None,
+        password: Optional[str] = None,
+        cluster: Optional["Cluster"] = None,
         superuser: bool = False,
         inherit: bool = True,
         createrole: bool = False,
@@ -60,9 +61,9 @@ class Role(generic._DynamicObject, generic._CollectionChild):
         replication: bool = False,
         bypassrls: bool = False,
         connection_limit: int = -1,
-        valid_until: datetime = None,
-        oid: int = None,
-        parent: "RoleCollection" = None,
+        valid_until: Optional[datetime] = None,
+        oid: Optional[int] = None,
+        parent: Optional["RoleCollection"] = None,
     ):
         super().__init__(kind="ROLE", cluster=cluster, oid=oid, name=name)
         generic._CollectionChild.__init__(self, parent=parent)
@@ -198,7 +199,7 @@ class Role(generic._DynamicObject, generic._CollectionChild):
         if password:
             sql += " PASSWORD {password}"
             params["password"] = Literal(password)
-        for permission in permission_list.keys():
+        for permission in permission_list:
             sql += " " + (permission if permission_list[permission] else f"NO{permission}")
         if self.connection_limit is not None:
             sql += " CONNECTION LIMIT {limit}"
@@ -311,7 +312,7 @@ class RoleCollection(generic._BaseCollection[Role]):
     def new(
         self,
         name: str,
-        password: str = None,
+        password: Optional[str] = None,
         superuser: bool = False,
         inherit: bool = True,
         createrole: bool = False,
@@ -320,7 +321,7 @@ class RoleCollection(generic._BaseCollection[Role]):
         replication: bool = False,
         bypassrls: bool = False,
         connection_limit: int = -1,
-        valid_until: datetime = None,
+        valid_until: Optional[datetime] = None,
     ) -> Role:
         """Create a role object on the current Postgres cluster. The object
         is created ephemeral and either needs to be added to the role collection,

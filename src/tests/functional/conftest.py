@@ -1,11 +1,13 @@
-from typing import Callable
-from types import ModuleType
-from dataclasses import dataclass
-import pytest
-import docker
 import os
 import time
+from dataclasses import dataclass
+from types import ModuleType
+from typing import Callable
+
+import docker
+import pytest
 from docker.types import ContainerSpec
+
 from pgmob.cluster import Cluster
 
 
@@ -214,7 +216,7 @@ def tablespace(psql, container):
 
 
 @pytest.fixture
-def connect(container, container_name, pg_password):
+def connect(container, hostname, pg_password):
     """Cluster object factory.
 
     Args:
@@ -227,7 +229,7 @@ def connect(container, container_name, pg_password):
         if not adapter:
             adapter = _psycopg2.Psycopg2Adapter(cursor_factory=None)
         return Cluster(
-            host=container_name,
+            host=hostname,
             port=5432,
             user="postgres",
             password=pg_password,

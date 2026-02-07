@@ -1,12 +1,11 @@
 """Internal generic objects shared between other objects."""
 
-from abc import abstractmethod
+from collections.abc import Iterator
 from enum import Enum
-import re
-from typing import Any, Dict, Generic, Iterator, List, Optional, TYPE_CHECKING, Tuple, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar
+
 from pgmob import errors
-from pgmob._decorators import deprecated
-from pgmob.sql import SQL, Identifier, Composable
+from pgmob.sql import SQL, Composable, Identifier
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
@@ -15,7 +14,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-class _BasePostgresObject(object):
+class _BasePostgresObject:
     """Base class for any Postgres object with oid.
 
     Args:
@@ -53,7 +52,7 @@ class _BaseObjectMapper(Generic[T]):
     def __init__(self, definition: tuple):
         self.definition = definition
 
-    def __getitem__(self, key: str) -> object:
+    def __getitem__(self, key: str) -> Any:
         return self.definition[self.attributes.index(key)]
 
     def map(self, obj: T) -> T:
@@ -70,10 +69,10 @@ class _BaseObjectMapper(Generic[T]):
         return obj
 
 
-class _ClusterBound(object):
+class _ClusterBound:
     """Object that is attached to a Cluster. Implements cluster retrieval internal function"""
 
-    def __init__(self, cluster: "Cluster" = None):
+    def __init__(self, cluster: Optional["Cluster"] = None):
         self._cluster = cluster
 
     @property
@@ -101,7 +100,7 @@ class _ClusterBound(object):
         self._cluster = value
 
 
-class Fqn(object):
+class Fqn:
     """Fully qualified object name. Defined by schema name (optional) and object name.
 
     Args:
@@ -134,7 +133,7 @@ class _FqnObject(_BasePostgresObject, _ClusterBound):
         name: str,
         oid: Optional[int] = None,
         schema: Optional[str] = None,
-        cluster: "Cluster" = None,
+        cluster: Optional["Cluster"] = None,
     ):
         _BasePostgresObject.__init__(self, oid=oid)
         _ClusterBound.__init__(self, cluster=cluster)
@@ -174,7 +173,7 @@ class _DynamicObject(_FqnObject):
         name: str,
         oid: Optional[int] = None,
         schema: Optional[str] = None,
-        cluster: "Cluster" = None,
+        cluster: Optional["Cluster"] = None,
     ):
         super().__init__(kind=kind, name=name, schema=schema, cluster=cluster, oid=oid)
         self._changes = _ChangeCollection()
@@ -194,16 +193,16 @@ class _DynamicObject(_FqnObject):
 
 
 def _set_ephemeral_attr(obj: _DynamicObject, attr: str, value: Any):
-    params = dict(
-        fqn=obj._sql_fqn(),
-        value=Identifier(value),
-    )
-    stmt_map = dict(
-        owner=SQL(f"ALTER {obj._kind} {{fqn}} OWNER TO {{value}}").format(**params),
-        name=SQL(f"ALTER {obj._kind} {{fqn}} RENAME TO {{value}}").format(**params),
-        schema=SQL(f"ALTER {obj.kind} {{fqn}} SET SCHEMA {{value}}").format(**params),
-        tablespace=SQL(f"ALTER {obj.kind} {{fqn}} SET TABLESPACE {{value}}").format(**params),
-    )
+    params = {
+        "fqn": obj._sql_fqn(),
+        "value": Identifier(value),
+    }
+    stmt_map = {
+        "owner": SQL(f"ALTER {obj._kind} {{fqn}} OWNER TO {{value}}").format(**params),
+        "name": SQL(f"ALTER {obj._kind} {{fqn}} RENAME TO {{value}}").format(**params),
+        "schema": SQL(f"ALTER {obj.kind} {{fqn}} SET SCHEMA {{value}}").format(**params),
+        "tablespace": SQL(f"ALTER {obj.kind} {{fqn}} SET TABLESPACE {{value}}").format(**params),
+    }
 
     if getattr(obj, f"_{attr}") != value:
         obj._changes[attr] = _SQLChange(obj=obj, sql=stmt_map[attr])
@@ -269,10 +268,10 @@ class _BaseCollection(_ClusterBound, SortedMappedCollection[T]):
     #     raise NotImplementedError()
 
 
-class _CollectionChild(object):
+class _CollectionChild:
     """Defines an object belonging to a Postgres collection"""
 
-    def __init__(self, parent: _BaseCollection = None):
+    def __init__(self, parent: Optional[_BaseCollection] = None):
         self._parent = parent
 
     @property
@@ -280,7 +279,7 @@ class _CollectionChild(object):
         return self._parent
 
 
-class _ObjectChange(object):
+class _ObjectChange:
     def __init__(self, obj: _DynamicObject, task, *args, **kwargs):
         if not isinstance(obj, _DynamicObject):
             raise AttributeError("This object class is not supported")
@@ -295,7 +294,7 @@ class _ObjectChange(object):
 
 
 class _SQLChange(_ObjectChange):
-    def __init__(self, obj: _DynamicObject, sql: Composable, params: tuple = None):
+    def __init__(self, obj: _DynamicObject, sql: Composable, params: Optional[tuple] = None):
         def task():
             obj.cluster.execute(sql, params)
 

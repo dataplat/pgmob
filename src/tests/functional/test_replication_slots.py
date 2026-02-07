@@ -2,7 +2,7 @@ from pgmob import objects
 
 
 class TestFunctionalReplicationSlot:
-    slot_query = "SELECT {field} FROM pg_catalog.pg_replication_slots" " WHERE slot_name = '{slot}'"
+    slot_query = "SELECT {field} FROM pg_catalog.pg_replication_slots WHERE slot_name = '{slot}'"
 
     def test_init(self, connect, replication_slot, plugin, db):
         cluster = connect()
@@ -34,9 +34,7 @@ class TestFunctionalReplicationSlot:
         slots = objects.ReplicationSlotCollection(cluster=cluster)
         assert slots[
             replication_slot
-        ].script() == f"SELECT pg_create_logical_replication_slot('{replication_slot}', '{plugin}')".encode(
-            "utf8"
-        )
+        ].script() == f"SELECT pg_create_logical_replication_slot('{replication_slot}', '{plugin}')".encode()
 
     def test_create(self, connect, db, psql, plugin):
         cluster = connect(db=db)

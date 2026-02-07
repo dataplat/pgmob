@@ -1,5 +1,7 @@
-from typing import Any, Sequence, Union
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
+from collections.abc import Sequence
+from typing import Any, Optional, Union
+
 from ..sql import Composable
 
 
@@ -33,7 +35,7 @@ class BaseCursor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def execute(self, query: Union[Composable, str], params: tuple = None) -> None:
+    def execute(self, query: Union[Composable, str], params: Optional[tuple] = None) -> None:
         """Execute a query with parameters. Should be overridden by the adapter, which should
         provide support for one of the two potential inputs:
 
@@ -54,7 +56,7 @@ class BaseCursor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def executemany(self, query: Composable, params: Sequence[tuple] = None) -> None:
+    def executemany(self, query: Composable, params: Optional[Sequence[tuple]] = None) -> None:
         """Execute a query with multiple parameter sets. Should be overridden by the adapter, which should
         provide support for all possible Composable objects that represent query parts:
         SQL, Literal, Identifier. Adapter should call the .compose() method of the query object
@@ -63,7 +65,7 @@ class BaseCursor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def mogrify(self, query: Composable, params: tuple = None) -> bytes:
+    def mogrify(self, query: Composable, params: Optional[tuple] = None) -> bytes:
         """Returns a parsed SQL query based on the parameters provided. Should be overridden by the adapter, which should
         provide support for all possible Composable objects that represent query parts:
         SQL, Literal, Identifier. Adapter should call the .compose() method of the query object
@@ -104,7 +106,7 @@ class BaseCursor(ABC):
 
     # default implementations
 
-    def scalar(self, query: Composable, params: tuple = None) -> Any:
+    def scalar(self, query: Composable, params: Optional[tuple] = None) -> Any:
         """Same as execute, but returns only the first item of the first row.
 
         Args:

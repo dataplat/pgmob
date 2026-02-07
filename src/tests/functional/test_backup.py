@@ -1,5 +1,7 @@
-import pytest
 import doctest
+
+import pytest
+
 from pgmob.backup import FileBackup, FileRestore
 from pgmob.errors import PostgresShellCommandError
 

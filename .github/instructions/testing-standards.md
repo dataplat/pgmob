@@ -1,0 +1,1 @@
+../../.windsurf/rules/testing-standards.md

@@ -1,10 +1,11 @@
 """Database objects. Represent databases of the Postgres cluster."""
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
-from ..sql import SQL, Composable, Identifier, Literal
-from ..errors import *
-from .. import util
-from . import generic
 
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+
+from .. import util
+from ..errors import PostgresError
+from ..sql import SQL, Composable, Identifier, Literal
+from . import generic
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
@@ -44,14 +45,14 @@ class Database(generic._DynamicObject, generic._CollectionChild):
     def __init__(
         self,
         name: str,
-        cluster: "Cluster" = None,
-        parent: "DatabaseCollection" = None,
-        owner: str = None,
-        encoding: str = None,
-        collation: str = None,
+        cluster: Optional["Cluster"] = None,
+        parent: Optional["DatabaseCollection"] = None,
+        owner: Optional[str] = None,
+        encoding: Optional[str] = None,
+        collation: Optional[str] = None,
         is_template: bool = False,
         oid: Optional[int] = None,
-        from_template: str = None,
+        from_template: Optional[str] = None,
     ):
         super().__init__(cluster=cluster, name=name, kind="DATABASE", oid=oid)
         generic._CollectionChild.__init__(self, parent=parent)
@@ -289,11 +290,11 @@ class DatabaseCollection(generic._BaseCollection[Database]):
     def new(
         self,
         name: str,
-        template: str = None,
-        owner: str = None,
+        template: Optional[str] = None,
+        owner: Optional[str] = None,
         is_template: bool = False,
-        encoding: str = None,
-        collation: str = None,
+        encoding: Optional[str] = None,
+        collation: Optional[str] = None,
     ) -> Database:
         """Create a database object on the current Postgres cluster. The object
         is created ephemeral and either needs to be added to the database collection,
