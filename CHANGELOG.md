@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Python 3.13 Required**: Minimum Python version upgraded from 3.9 to 3.13
   - Python 3.9, 3.10, 3.11, and 3.12 are no longer supported
   - This change enables the use of modern Python features and performance improvements
-  - See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for upgrade instructions
 
 ### Added
 
@@ -47,35 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for Python 3.9, 3.10, 3.11, and 3.12
 - Legacy typing imports (List, Dict, Set, Tuple, Optional, Union) from codebase
 
-### Performance
-
-- **5-15% performance improvement** from Python 3.13 optimizations
-- **Additional benefits** from cumulative Python 3.11 and 3.12 performance enhancements:
-  - Python 3.11 introduced 10-60% performance improvements through optimizations
-  - Python 3.12 continued performance enhancements
-  - Python 3.13 adds experimental JIT compiler (PEP 744) for up to 30% speedups in computation-heavy tasks
-- **7% smaller memory footprint** compared to Python 3.12
-- Faster test execution times due to interpreter improvements
-
 ### Documentation
 
 - Updated README.md to specify Python 3.13 requirement
 - Updated CONTRIBUTING.md with Python 3.13 development setup instructions
 - Added migration guide for users upgrading from 0.2.x
-- Enhanced code comments for modern Python features
-
-### Internal
-
-- Updated all configuration files to Python 3.13:
-  - pyproject.toml requires-python and classifiers
-  - docs/pyproject.toml requires-python
-  - .readthedocs.yaml Python version
-  - .github/actions/test/action.yaml default Python version
-  - Dockerfile base image to Python 3.13-bookworm
-- Updated ruff target-version to py313
-- All 267 tests (164 unit + 103 functional) pass with Python 3.13
-- Type checking passes with zero errors
-- Linting passes with zero errors
 
 ---
 
