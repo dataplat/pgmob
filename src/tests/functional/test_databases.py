@@ -30,7 +30,7 @@ class TestFunctionalDatabase:
         assert db_item.min_multixact_id is not None
         assert db_item.tablespace is not None
         assert db_item.acl is None
-        assert db_item.oid > 0
+        assert db_item.oid is not None and db_item.oid > 0
         assert str(db_item) == f"Database('{db}')"
 
     # setters
@@ -63,7 +63,7 @@ class TestFunctionalDatabase:
         psql(f"DROP DATABASE {db}")
         db_obj = databases.new(name=db, owner=role, template="template0", is_template=False)
         db_obj.create()
-        assert db_obj.oid > 0
+        assert db_obj.oid is not None and db_obj.oid > 0
         assert psql(self.database_query.format(field="r.rolname", db=db)).output == role
 
     def test_script(self, db, databases: objects.DatabaseCollection, psql):

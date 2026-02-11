@@ -1,5 +1,5 @@
 import re
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 
@@ -40,15 +40,17 @@ class TestFunctionalRoles:
         assert role_item.replication == False
         assert role_item.connection_limit == 10
         assert role_item.bypassrls == False
-        assert role_item.valid_until.date() == day
-        assert role_item.oid > 0
+        assert role_item.valid_until is not None and role_item.valid_until.date() == day
+        assert role_item.oid is not None and role_item.oid > 0
         assert str(role_item) == f"Role('{tmp_role}')"
 
     # methods
     def test_get_password_md5(self, roles: objects.RoleCollection, tmp_role: str):
         role_item = roles[tmp_role]
-        assert isinstance(role_item.get_password_md5(), str)
-        assert re.search("^md5\\w{32}$", role_item.get_password_md5())
+        password_md5 = role_item.get_password_md5()
+        assert isinstance(password_md5, str)
+        search_result = re.search("^md5\\w{32}$", password_md5)
+        assert search_result is not None
 
     def test_name(self, test_role, roles: objects.RoleCollection, psql, tmp_role):
         renamed = test_role.create("pgmobrenamerole")
@@ -69,10 +71,14 @@ class TestFunctionalRoles:
         psql(f"DROP ROLE {tmp_role}")
         day = date.today()
         role_obj = roles.new(
-            name=tmp_role, password="foobar", createdb=True, valid_until=day, connection_limit=2
+            name=tmp_role,
+            password="foobar",
+            createdb=True,
+            valid_until=datetime.combine(day, datetime.min.time()),
+            connection_limit=2,
         )
         role_obj.create()
-        assert role_obj.oid > 0
+        assert role_obj.oid is not None and role_obj.oid > 0
         assert psql(self.role_query.format(field="rolname", role=tmp_role)).output == tmp_role
         assert psql(self.role_query.format(field="rolvaliduntil::date", role=tmp_role)).output == str(day)
         assert psql(self.role_query.format(field="rolcreatedb", role=tmp_role)).output == "t"
@@ -80,9 +86,10 @@ class TestFunctionalRoles:
 
     def test_script(self, tmp_role, roles: objects.RoleCollection, psql):
         role_obj = roles[tmp_role]
-        assert re.match(
-            "CREATE ROLE.*CREATEROLE.*LOGIN.*CONNECTION LIMIT.*VALID UNTIL", role_obj.script().decode("utf8")
-        )
+        script = role_obj.script()
+        script_str = script.decode("utf8") if isinstance(script, bytes) else str(script)
+        match_result = re.match("CREATE ROLE.*CREATEROLE.*LOGIN.*CONNECTION LIMIT.*VALID UNTIL", script_str)
+        assert match_result is not None
 
     def test_change_password(self, tmp_role: str, roles: objects.RoleCollection, psql):
         pw_query = f"SELECT rolpassword FROM pg_catalog.pg_authid WHERE rolname = '{tmp_role}'"

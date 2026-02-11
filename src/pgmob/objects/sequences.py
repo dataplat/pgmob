@@ -8,12 +8,19 @@ from .. import util
 from ..errors import PostgresError
 from ..sql import SQL, Literal
 from . import generic
+from .mixins import NamedObjectMixin, OwnedObjectMixin, SchemaObjectMixin
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
 
 
-class Sequence(generic._DynamicObject, generic._CollectionChild):
+class Sequence(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    SchemaObjectMixin,
+    generic._DynamicObject,
+    generic._CollectionChild,
+):
     """Postgres sequence object. Represents a sequence on a Postgres server.
 
     Args:
@@ -26,9 +33,9 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
 
     Attributes:
         name (str): Sequence name
-        cluster (str): Postgres cluster object
-        schema (str): Schema name
         owner (str): Sequence owner
+        schema (str): Schema name
+        cluster (str): Postgres cluster object
         data_type (str): Data type
         start_value (int): Sequence start value
         min_value (int): Sequence minimum value
@@ -52,8 +59,13 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
         """Initialize a new Sequence object"""
         super().__init__(kind="SEQUENCE", cluster=cluster, oid=oid, name=name, schema=schema)
         generic._CollectionChild.__init__(self, parent=parent)
-        self._owner = owner
-        self._schema: str = schema
+
+        # Initialize mixins
+        self._init_name(name)
+        self._init_owner(owner)
+        self._init_schema(schema)
+
+        # Sequence-specific attributes
         self._data_type: str | None = None
         self._start_value: int | None = None
         self._min_value: int | None = None
@@ -148,30 +160,6 @@ class Sequence(generic._DynamicObject, generic._CollectionChild):
     @property
     def last_value(self) -> int | None:
         return self._last_value
-
-    @property
-    def owner(self) -> str | None:
-        return self._owner
-
-    @owner.setter
-    def owner(self, owner: str):
-        generic._set_ephemeral_attr(self, "owner", owner)
-
-    @property
-    def schema(self) -> str:
-        return self._schema
-
-    @schema.setter
-    def schema(self, schema: str):
-        generic._set_ephemeral_attr(self, "schema", schema)
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name: str):
-        generic._set_ephemeral_attr(self, "name", name)
 
     # methods
     def drop(self, cascade: bool = False):

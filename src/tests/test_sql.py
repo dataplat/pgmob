@@ -15,7 +15,7 @@ class TestSQL:
         assert str(SQL("asd")) == 'SQL("asd")'
 
         with pytest.raises(TypeError):
-            SQL()
+            SQL()  # type: ignore[call-arg]
 
     def test_format(self):
         result = SQL("SELECT {field} FROM {table}").format(field=Identifier("foo"), table=Identifier("bar"))
@@ -52,7 +52,7 @@ class TestIdentifier:
         assert str(Identifier("asd")) == 'Identifier("asd")'
 
         with pytest.raises(TypeError):
-            Identifier()
+            Identifier()  # type: ignore[call-arg]
 
     def test_compose(self):
         result = Identifier("asd").compose()
@@ -78,7 +78,7 @@ class TestLiteral:
         assert str(Literal("asd")) == 'Literal("asd")'
 
         with pytest.raises(TypeError):
-            Literal()
+            Literal()  # type: ignore[call-arg]
 
     def test_value(self):
         assert Literal("asd").value() == "asd"
