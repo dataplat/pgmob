@@ -8,12 +8,13 @@ from ..adapters import AdapterError
 from ..errors import PostgresError
 from ..sql import SQL, Composable, Identifier, Literal
 from . import generic
+from .mixins import NamedObjectMixin
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
 
 
-class Role(generic._DynamicObject, generic._CollectionChild):
+class Role(NamedObjectMixin, generic._DynamicObject, generic._CollectionChild):
     """
     Postgres Role object. Represents a role object on a Postgres server.
 
@@ -34,7 +35,7 @@ class Role(generic._DynamicObject, generic._CollectionChild):
         parent (DatabaseCollection): parent collection
 
     Attributes:
-        name (str): Table name
+        name (str): Role name
         cluster (str): Postgres cluster object
         superuser (bool): SUPERUSER permissions
         inherit (bool): INHERIT permissions
@@ -67,6 +68,11 @@ class Role(generic._DynamicObject, generic._CollectionChild):
     ):
         super().__init__(kind="ROLE", cluster=cluster, oid=oid, name=name)
         generic._CollectionChild.__init__(self, parent=parent)
+
+        # Initialize mixin
+        self._init_name(name)
+
+        # Role-specific attributes
         self._password = password
         self._cluster = cluster
         self._superuser = superuser
@@ -79,14 +85,6 @@ class Role(generic._DynamicObject, generic._CollectionChild):
         self._connection_limit = connection_limit
         self._valid_until = valid_until
         self._oid = oid
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name: str):
-        generic._set_ephemeral_attr(self, "name", name)
 
     @property
     def superuser(self) -> bool:
