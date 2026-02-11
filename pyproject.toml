@@ -31,6 +31,7 @@ dev = [
     "ruff>=0.15.0",
     "ty>=0.0.15",
     "pyyaml>=6.0.3",
+    "hypothesis>=6.0.0",
 ]
 
 [project.urls]
