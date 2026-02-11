@@ -10,12 +10,13 @@ from pgmob.errors import PostgresError
 from pgmob.sql import SQL, Literal
 
 from . import generic
+from .mixins import OwnedObjectMixin
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
 
 
-class LargeObject(generic._DynamicObject, generic._CollectionChild):
+class LargeObject(OwnedObjectMixin, generic._DynamicObject, generic._CollectionChild):
     """
     Postgres LargeObject object. Represents a large object on a Postgres server.
 
@@ -40,7 +41,9 @@ class LargeObject(generic._DynamicObject, generic._CollectionChild):
         """Initialize a new LargeObject object"""
         super().__init__(kind="LARGE OBJECT", cluster=cluster, oid=oid, name=str(oid))
         generic._CollectionChild.__init__(self, parent=parent)
-        self._owner = owner
+
+        # Initialize mixin
+        self._init_owner(owner)
 
     def _sql_fqn(self) -> Literal:
         return Literal(self._oid)
@@ -54,14 +57,6 @@ class LargeObject(generic._DynamicObject, generic._CollectionChild):
             result = task(lo)
             lo.close()
             return result
-
-    @property
-    def owner(self) -> str | None:
-        return self._owner
-
-    @owner.setter
-    def owner(self, owner: str):
-        generic._set_ephemeral_attr(self, "owner", owner)
 
     def drop(self):
         """Drops the largeobject from the Postgres cluster"""
