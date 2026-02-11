@@ -29,7 +29,7 @@ runs:
       shell: bash
 
     - name: Install dependencies
-      run: uv sync --extra psycopg2-binary
+      run: cd docs && uv sync
       shell: bash
       working-directory: docs
 
