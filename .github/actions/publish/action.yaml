@@ -34,9 +34,8 @@ runs:
       shell: bash
 
     - name: Setup python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ inputs.PYTHON_VERSION }}
+      run: uv python install ${{ inputs.PYTHON_VERSION }}
+      shell: bash
 
     - name: Build package
       run: uv build

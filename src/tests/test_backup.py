@@ -100,6 +100,7 @@ class TestBackup:
 
     def test_file_backup_params(self, cluster):
         backup = FileBackup(cluster=cluster)
+        assert isinstance(backup.options, BackupOptions)
         backup.options.compress = True
         backup.options.exclude_table_data = ["a"]
         backup.options.blobs = False
@@ -140,6 +141,7 @@ class TestBackup:
 
     def test_gcp_backup_paramrs(self, cluster):
         backup = GCPBackup(cluster=cluster)
+        assert isinstance(backup.options, BackupOptions)
         backup.options.compress = True
         backup.options.exclude_table_data = ["a"]
 
@@ -156,6 +158,7 @@ class TestRestore:
         restore = FileRestore(cluster=cluster)
         options = restore.options
         assert options.__class__ is RestoreOptions
+        assert isinstance(options, RestoreOptions)
 
         # shared
         assert options.data_only == False
@@ -235,6 +238,7 @@ class TestRestore:
 
     def test_file_restore_params(self, cluster):
         restore = FileRestore(cluster=cluster)
+        assert isinstance(restore.options, RestoreOptions)
         restore.options.disable_triggers = True
         restore.options.indexes = ["a", "b"]
         restore.options.jobs = 4
@@ -287,6 +291,7 @@ class TestRestore:
 
     def test_gcp_restore_params(self, cluster):
         restore = GCPRestore(cluster=cluster)
+        assert isinstance(restore.options, RestoreOptions)
         restore.options.disable_triggers = True
         restore.options.indexes = ["a", "b"]
         restore.options.jobs = 4

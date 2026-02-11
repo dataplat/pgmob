@@ -8,12 +8,13 @@ from .. import util
 from ..errors import PostgresError
 from ..sql import SQL, Composable, Identifier, Literal
 from . import generic
+from .mixins import NamedObjectMixin, OwnedObjectMixin
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
 
 
-class Database(generic._DynamicObject, generic._CollectionChild):
+class Database(NamedObjectMixin, OwnedObjectMixin, generic._DynamicObject, generic._CollectionChild):
     """
     Postgres Database object. Represents a database object on a Postgres server.
 
@@ -58,7 +59,12 @@ class Database(generic._DynamicObject, generic._CollectionChild):
     ):
         super().__init__(cluster=cluster, name=name, kind="DATABASE", oid=oid)
         generic._CollectionChild.__init__(self, parent=parent)
-        self._owner = owner
+
+        # Initialize mixins
+        self._init_name(name)
+        self._init_owner(owner)
+
+        # Database-specific attributes
         self._encoding = encoding
         self._collation = collation
         self._is_template = is_template
@@ -81,22 +87,6 @@ class Database(generic._DynamicObject, generic._CollectionChild):
         self.cluster.execute(sql, self.name)
 
     # properties
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name: str):
-        generic._set_ephemeral_attr(self, "name", name)
-
-    @property
-    def owner(self) -> str | None:
-        return self._owner
-
-    @owner.setter
-    def owner(self, owner: str):
-        generic._set_ephemeral_attr(self, "owner", owner)
-
     @property
     def encoding(self) -> str | None:
         return self._encoding

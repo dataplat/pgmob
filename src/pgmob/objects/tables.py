@@ -8,12 +8,20 @@ from .. import util
 from ..errors import PostgresError
 from ..sql import SQL, Identifier
 from . import generic
+from .mixins import NamedObjectMixin, OwnedObjectMixin, SchemaObjectMixin, TablespaceObjectMixin
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
 
 
-class Table(generic._DynamicObject, generic._CollectionChild):
+class Table(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    SchemaObjectMixin,
+    TablespaceObjectMixin,
+    generic._DynamicObject,
+    generic._CollectionChild,
+):
     """Postgres Table object. Represents a table object on a Postgres server.
 
     Args:
@@ -26,10 +34,10 @@ class Table(generic._DynamicObject, generic._CollectionChild):
 
     Attributes:
         name (str): Table name
-        cluster (str): Postgres cluster object
-        schema (str): Schema name
         owner (str): Table owner
+        schema (str): Schema name
         tablespace (str): Tablespace
+        cluster (str): Postgres cluster object
         row_security (bool): Whether the row security is enabled
         oid (int): Table OID
     """
@@ -46,9 +54,14 @@ class Table(generic._DynamicObject, generic._CollectionChild):
         """Initialize a new Table object"""
         super().__init__(kind="TABLE", cluster=cluster, oid=oid, name=name, schema=schema)
         generic._CollectionChild.__init__(self, parent=parent)
-        self._schema: str = schema
-        self._owner = owner
-        self._tablespace: str | None = None
+
+        # Initialize mixins
+        self._init_name(name)
+        self._init_owner(owner)
+        self._init_schema(schema)
+        self._init_tablespace(None)
+
+        # Table-specific attributes
         self._row_security: bool = False
 
     def drop(self, cascade: bool = False):
@@ -101,30 +114,6 @@ class Table(generic._DynamicObject, generic._CollectionChild):
                 sql=SQL(f"ALTER TABLE {{fqn}} {keyword} ROW LEVEL SECURITY").format(fqn=self._sql_fqn()),
             )
             self._row_security = value
-
-    @property
-    def owner(self) -> str | None:
-        return self._owner
-
-    @owner.setter
-    def owner(self, owner: str):
-        generic._set_ephemeral_attr(self, "owner", owner)
-
-    @property
-    def schema(self) -> str:
-        return self._schema
-
-    @schema.setter
-    def schema(self, schema: str):
-        generic._set_ephemeral_attr(self, "schema", schema)
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name: str):
-        generic._set_ephemeral_attr(self, "name", name)
 
 
 class _TableMapper(generic._BaseObjectMapper[Table]):

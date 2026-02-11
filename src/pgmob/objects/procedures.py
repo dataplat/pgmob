@@ -8,6 +8,7 @@ from .. import util
 from ..errors import PostgresError
 from ..sql import SQL, Composable, Identifier
 from . import generic
+from .mixins import NamedObjectMixin, OwnedObjectMixin, SchemaObjectMixin
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
@@ -42,7 +43,13 @@ class ParallelSafety(generic.AliasEnum):
     UNSAFE = "u"
 
 
-class _BaseProcedure(generic._DynamicObject, generic._CollectionChild):
+class _BaseProcedure(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    SchemaObjectMixin,
+    generic._DynamicObject,
+    generic._CollectionChild,
+):
     """Postgres Procedure base object. Represents a stored procedure,
     function, window function or aggregate on a Postgres server.
 
@@ -95,8 +102,14 @@ class _BaseProcedure(generic._DynamicObject, generic._CollectionChild):
     ):
         super().__init__(kind=kind, cluster=cluster, oid=oid, name=name, schema=schema)
         generic._CollectionChild.__init__(self, parent=parent)
+
+        # Initialize mixins
+        self._init_name(name)
+        self._init_owner(owner)
+        self._init_schema(schema)
+
+        # Procedure-specific attributes
         self._language = language
-        self._owner = owner
         self._security_definer = security_definer
         self._leak_proof = leak_proof
         self._strict = strict
@@ -161,30 +174,6 @@ class _BaseProcedure(generic._DynamicObject, generic._CollectionChild):
                 raise PostgresError("Procedure with oid %s was not found", self.oid)
             mapper = _ProcedureMapper(result[0])
             mapper.map(self)
-
-    @property
-    def owner(self) -> str | None:
-        return self._owner
-
-    @owner.setter
-    def owner(self, owner: str):
-        generic._set_ephemeral_attr(self, "owner", owner)
-
-    @property
-    def schema(self) -> str | None:
-        return self._schema
-
-    @schema.setter
-    def schema(self, schema: str):
-        generic._set_ephemeral_attr(self, "schema", schema)
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name: str):
-        generic._set_ephemeral_attr(self, "name", name)
 
 
 class Procedure(_BaseProcedure):

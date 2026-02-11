@@ -6,12 +6,13 @@ from .. import util
 from ..errors import PostgresError
 from ..sql import SQL, Composable, Identifier
 from . import generic
+from .mixins import NamedObjectMixin, OwnedObjectMixin
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
 
 
-class Schema(generic._DynamicObject, generic._CollectionChild):
+class Schema(NamedObjectMixin, OwnedObjectMixin, generic._DynamicObject, generic._CollectionChild):
     """Postgres schema object. Represents a schema object on a Postgres cluster.
 
     Args:
@@ -23,8 +24,8 @@ class Schema(generic._DynamicObject, generic._CollectionChild):
 
     Attributes:
         name (str): Schema name
-        cluster (str): Postgres cluster object
         owner (str): Schema owner
+        cluster (str): Postgres cluster object
         oid (int): Schema OID
     """
 
@@ -38,23 +39,10 @@ class Schema(generic._DynamicObject, generic._CollectionChild):
     ):
         super().__init__(cluster=cluster, name=name, kind="SCHEMA", oid=oid)
         generic._CollectionChild.__init__(self, parent=parent)
-        self._owner = owner
 
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name: str):
-        generic._set_ephemeral_attr(self, "name", name)
-
-    @property
-    def owner(self) -> str | None:
-        return self._owner
-
-    @owner.setter
-    def owner(self, owner: str):
-        generic._set_ephemeral_attr(self, "owner", owner)
+        # Initialize mixins
+        self._init_name(name)
+        self._init_owner(owner)
 
     def drop(self, cascade: bool = False):
         """Drops the schema from the Postgres cluster

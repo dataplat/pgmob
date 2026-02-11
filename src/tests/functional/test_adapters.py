@@ -50,7 +50,7 @@ def cursor(adapter):
 
 
 @pytest.fixture()
-def lobject_factory(adapter: BaseAdapter, lo_ids_factory, db) -> BaseLargeObject:
+def lobject_factory(adapter: BaseAdapter, lo_ids_factory, db):
     """Lobject object rw"""
     lo_ids = lo_ids_factory(db=db)
 
@@ -61,7 +61,7 @@ def lobject_factory(adapter: BaseAdapter, lo_ids_factory, db) -> BaseLargeObject
 
 
 @pytest.fixture()
-def lobject_r(adapter: BaseAdapter, lo_ids_factory, db) -> BaseLargeObject:
+def lobject_r(adapter: BaseAdapter, lo_ids_factory, db):
     """Lobject object read"""
     lo_ids = lo_ids_factory(db=db)
     with adapter.lobject(lo_ids[0], "r") as lob:

@@ -9,14 +9,6 @@ inputs:
     description: Python version
     required: false
     default: "3.13"
-  POSTGRES_VERSION:
-    description: Postgres major version to use
-    required: false
-    default: 12
-  CONTAINER_NETWORK:
-    description: Docker container network to use
-    required: false
-    default: pgmob-network
 
 runs:
   using: "composite"
@@ -33,9 +25,8 @@ runs:
       shell: bash
 
     - name: Setup python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ inputs.PYTHON_VERSION }}
+      run: uv python install ${{ inputs.PYTHON_VERSION }}
+      shell: bash
 
     - name: Install dependencies
       run: uv sync

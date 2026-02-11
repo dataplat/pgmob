@@ -171,24 +171,38 @@ table_names = cluster.tables.keys()  # Fast - uses metadata
 
 ## Inheritance and Mixins
 
-### Using Mixins
-```python
-from .objects.generic import (
-    _DynamicObject,
-    _CollectionChild,
-    OwnedObjectMixin,
-    SchemaObjectMixin,
-    NamedObjectMixin
-)
+### Overview
 
-class MyObject(
-    _DynamicObject,
-    _CollectionChild,
+PGMob uses mixins to provide common properties (name, owner, schema, tablespace) to PostgreSQL object classes. Mixins eliminate code duplication and ensure consistent behavior across all object types.
+
+Available mixins:
+- **NamedObjectMixin**: Provides `name` property for objects with names
+- **OwnedObjectMixin**: Provides `owner` property for objects with owners
+- **SchemaObjectMixin**: Provides `schema` property for objects in schemas
+- **TablespaceObjectMixin**: Provides `tablespace` property for objects in tablespaces
+
+### Mixin Initialization Pattern
+
+Mixins use explicit initialization methods (`_init_*()`) that must be called in the object's `__init__` method. This avoids constructor conflicts with multiple inheritance.
+
+```python
+from .objects.mixins import (
+    NamedObjectMixin,
     OwnedObjectMixin,
     SchemaObjectMixin,
-    NamedObjectMixin
+    TablespaceObjectMixin
+)
+from .objects.generic import _DynamicObject, _CollectionChild
+
+class Table(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    SchemaObjectMixin,
+    TablespaceObjectMixin,
+    _DynamicObject,
+    _CollectionChild
 ):
-    """Object with common properties via mixins."""
+    """Table object with mixin properties."""
 
     def __init__(
         self,
@@ -196,18 +210,156 @@ class MyObject(
         schema: str = "public",
         owner: Optional[str] = None,
         cluster: "Cluster" = None,
-        **kwargs
+        parent: "TableCollection" = None,
+        oid: Optional[int] = None
     ):
-        super().__init__(kind="MY_OBJECT", cluster=cluster, name=name, schema=schema)
-        _CollectionChild.__init__(self, parent=kwargs.get('parent'))
+        # Initialize base classes
+        super().__init__(kind="TABLE", cluster=cluster, oid=oid, name=name, schema=schema)
+        _CollectionChild.__init__(self, parent=parent)
 
-        # Initialize mixins
-        self.__init_name__(name)
-        self.__init_schema__(schema)
-        self.__init_owner__(owner)
+        # Initialize mixins - REQUIRED
+        self._init_name(name)
+        self._init_owner(owner)
+        self._init_schema(schema)
+        self._init_tablespace(None)
 
         # Object-specific attributes
-        self._custom_attr = kwargs.get('custom_attr')
+        self._row_security: bool = False
+```
+
+### Creating Objects with Mixins
+
+#### Example 1: Object with Name, Owner, and Schema
+
+```python
+from .objects.mixins import NamedObjectMixin, OwnedObjectMixin, SchemaObjectMixin
+from .objects.generic import _DynamicObject, _CollectionChild
+
+class Sequence(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    SchemaObjectMixin,
+    _DynamicObject,
+    _CollectionChild
+):
+    """Sequence object."""
+
+    def __init__(
+        self,
+        name: str,
+        schema: str = "public",
+        owner: Optional[str] = None,
+        cluster: "Cluster" = None,
+        parent: "SequenceCollection" = None,
+        oid: Optional[int] = None
+    ):
+        super().__init__(kind="SEQUENCE", cluster=cluster, oid=oid, name=name, schema=schema)
+        _CollectionChild.__init__(self, parent=parent)
+
+        # Initialize mixins
+        self._init_name(name)
+        self._init_owner(owner)
+        self._init_schema(schema)
+
+        # Sequence-specific attributes
+        self._start_value: Optional[int] = None
+        self._increment_by: Optional[int] = None
+```
+
+#### Example 2: Object with Only Name and Owner
+
+```python
+from .objects.mixins import NamedObjectMixin, OwnedObjectMixin
+from .objects.generic import _DynamicObject, _CollectionChild
+
+class Schema(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    _DynamicObject,
+    _CollectionChild
+):
+    """Schema object (does NOT inherit SchemaObjectMixin)."""
+
+    def __init__(
+        self,
+        name: str,
+        owner: Optional[str] = None,
+        cluster: "Cluster" = None,
+        parent: "SchemaCollection" = None,
+        oid: Optional[int] = None
+    ):
+        super().__init__(kind="SCHEMA", cluster=cluster, oid=oid, name=name)
+        _CollectionChild.__init__(self, parent=parent)
+
+        # Initialize mixins
+        self._init_name(name)
+        self._init_owner(owner)
+```
+
+#### Example 3: Object with Only Name
+
+```python
+from .objects.mixins import NamedObjectMixin
+from .objects.generic import _DynamicObject, _CollectionChild
+
+class Role(
+    NamedObjectMixin,
+    _DynamicObject,
+    _CollectionChild
+):
+    """Role object."""
+
+    def __init__(
+        self,
+        name: str,
+        cluster: "Cluster" = None,
+        parent: "RoleCollection" = None,
+        oid: Optional[int] = None,
+        password: Optional[str] = None
+    ):
+        super().__init__(kind="ROLE", cluster=cluster, oid=oid, name=name)
+        _CollectionChild.__init__(self, parent=parent)
+
+        # Initialize mixin
+        self._init_name(name)
+
+        # Role-specific attributes
+        self._password = password
+        self._superuser: bool = False
+        self._login: bool = False
+```
+
+### Which Mixins to Use
+
+Choose mixins based on the PostgreSQL object type:
+
+| Object Type | NamedObjectMixin | OwnedObjectMixin | SchemaObjectMixin | TablespaceObjectMixin |
+|-------------|------------------|------------------|-------------------|----------------------|
+| Table       | ✓                | ✓                | ✓                 | ✓                    |
+| View        | ✓                | ✓                | ✓                 | ✗                    |
+| Sequence    | ✓                | ✓                | ✓                 | ✗                    |
+| Schema      | ✓                | ✓                | ✗                 | ✗                    |
+| Role        | ✓                | ✗                | ✗                 | ✗                    |
+| Database    | ✓                | ✓                | ✗                 | ✓                    |
+| Procedure   | ✓                | ✓                | ✓                 | ✗                    |
+
+**Note**: Schema objects do NOT inherit from SchemaObjectMixin (schemas don't belong to schemas).
+
+### Using Mixin Properties
+
+Mixin properties work exactly like regular properties with change tracking:
+
+```python
+# Get property value
+table = cluster.tables["users"]
+print(table.name)    # From NamedObjectMixin
+print(table.owner)   # From OwnedObjectMixin
+print(table.schema)  # From SchemaObjectMixin
+
+# Set property value (queues change for alter())
+table.owner = "new_owner"
+table.schema = "app_schema"
+table.alter()  # Apply changes to database
 ```
 
 ### Change Tracking Pattern
@@ -526,6 +678,112 @@ def bulk_alter_owner(self, tables: List[Table], new_owner: str) -> None:
             for stmt in statements:
                 self.execute(stmt)
 ```
+
+## Development Environment Setup
+
+### CRITICAL: Initial Setup Required
+
+Before starting any development work, you MUST set up the development environment:
+
+```bash
+# Install all dependencies including dev tools
+uv sync --extra dev --extra psycopg2-binary
+```
+
+This command:
+- Installs all project dependencies
+- Installs development tools (pytest, ruff, ty, etc.)
+- Installs the psycopg2-binary adapter for PostgreSQL
+
+Run this command once at the start of development or whenever dependencies change.
+
+## Code Quality Verification
+
+### CRITICAL: Always Run After Code Changes
+
+After implementing ANY code change to the codebase, you MUST run the following checks in order:
+
+1. **Unit Tests**: Verify functionality works correctly
+2. **Linting**: Ensure code style compliance
+3. **Type Checks**: Verify type safety
+
+### Running Tests
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run specific test file
+uv run pytest src/tests/test_mixins.py
+
+# Run with coverage
+uv run pytest --cov=src/pgmob --cov-report=term-missing
+
+# Run tests matching pattern
+uv run pytest -k "test_mixin"
+```
+
+### Running Linting
+
+```bash
+# Run ruff linter (checks code style and common issues)
+uv run ruff check src/
+
+# Run ruff with auto-fix
+uv run ruff check --fix src/
+
+# Check specific file
+uv run ruff check src/pgmob/objects/mixins.py
+```
+
+### Running Type Checks
+
+```bash
+# Run ty type checker
+uv run ty check
+
+# Type checking is project-wide, no single file option
+```
+
+### Complete Verification Workflow
+
+After making code changes, run this complete workflow:
+
+```bash
+# 1. Run tests
+uv run pytest
+
+# 2. Run linting
+uv run ruff check src/
+
+# 3. Run type checks
+uv run ty check
+```
+
+# 3. Run type checks
+uv run ty check
+```
+
+If any check fails, fix the issues before proceeding. Do not consider a code change complete until all three checks pass.
+
+### Handling Check Failures
+
+**Test Failures:**
+- Review the test output to understand what failed
+- Fix the implementation or update tests if requirements changed
+- Re-run tests to verify the fix
+
+**Linting Failures:**
+- Use `uv run ruff check --fix` to auto-fix simple issues
+- Manually fix remaining issues following PEP 8 and project conventions
+- Re-run linting to verify compliance
+
+**Type Check Failures:**
+- Add missing type hints
+- Fix incorrect type annotations
+- Use `# type: ignore` only as a last resort with a comment explaining why
+- Re-run type checks to verify fixes
+- Note: Type warnings in mixin classes about `_set_ephemeral_attr` expecting `_DynamicObject` are expected and safe to ignore, as mixins are only used with classes that inherit from `_DynamicObject`
 
 ## Documentation Patterns
 

@@ -69,23 +69,23 @@ class TestVersion:
 class TestUtil:
     def test_get_sql(self):
         assert isinstance(get_sql("get_database"), SQL)
-        assert re.search("datname", get_sql("get_database").value())
+        assert re.search("datname", str(get_sql("get_database").value())) is not None
 
         assert isinstance(get_sql("get_procedure"), SQL)
-        assert re.search("proiswindow", get_sql("get_procedure").value())
-        assert not re.search("p\\.prokind", get_sql("get_procedure").value())
+        assert re.search("proiswindow", str(get_sql("get_procedure").value())) is not None
+        assert not re.search("p\\.prokind", str(get_sql("get_procedure").value()))
 
         assert isinstance(get_sql("get_procedure", Version("10.0")), SQL)
-        assert re.search("proiswindow", get_sql("get_procedure", Version("10.0")).value())
-        assert not re.search("p\\.prokind", get_sql("get_procedure", Version("10.0")).value())
+        assert re.search("proiswindow", str(get_sql("get_procedure", Version("10.0")).value())) is not None
+        assert not re.search("p\\.prokind", str(get_sql("get_procedure", Version("10.0")).value()))
 
         assert isinstance(get_sql("get_procedure", Version("11.0")), SQL)
-        assert re.search("p\\.prokind", get_sql("get_procedure", Version("11.0")).value())
-        assert not re.search("proiswindow", get_sql("get_procedure", Version("11.0")).value())
+        assert re.search("p\\.prokind", str(get_sql("get_procedure", Version("11.0")).value())) is not None
+        assert not re.search("proiswindow", str(get_sql("get_procedure", Version("11.0")).value()))
 
         assert isinstance(get_sql("get_procedure", Version("12.0")), SQL)
-        assert re.search("p\\.prokind", get_sql("get_procedure", Version("12.0")).value())
-        assert not re.search("proiswindow", get_sql("get_procedure", Version("12.0")).value())
+        assert re.search("p\\.prokind", str(get_sql("get_procedure", Version("12.0")).value())) is not None
+        assert not re.search("proiswindow", str(get_sql("get_procedure", Version("12.0")).value()))
 
     def test_group_by(self):
         Seq = namedtuple("Seq", "a b c d")

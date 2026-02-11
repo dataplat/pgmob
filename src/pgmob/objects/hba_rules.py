@@ -179,11 +179,11 @@ class HBARuleCollection(collections.UserList[HBARule], generic._ClusterBound):
         return self
 
     @override
-    def extend(self, item: Iterable[HBARule]):  # type: ignore[override]  # Intentional: more specific than parent's Iterable[HBARule]
+    def extend(self, item: Iterable[str | HBARule]):  # type: ignore[override]  # Intentional: accepts str | HBARule, not just HBARule
         """Add multiple HBA rules to the collection
 
         Args:
-            item(Iterable[Any]): An iterable of lines from pg_hba as strings or HBARule object
+            item(Iterable[str | HBARule]): An iterable of lines from pg_hba as strings or HBARule objects
         """
         self.data.extend([HBARule(x) for x in item])
 

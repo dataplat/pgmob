@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-02-10
+
+### Changed
+
+- **Internal Refactoring**: Introduced mixin-based architecture to eliminate code duplication
+  - Created reusable mixin classes for common properties (name, owner, schema, tablespace)
+  - Refactored 8 object classes (Table, View, Sequence, Database, Schema, Role, Procedure/Function/Aggregate/WindowFunction, LargeObject) to use mixins
+  - Reduced code duplication by 30-40% across object types
+  - Improved maintainability - common property changes now only need to be made in one place
+  - Enhanced type safety with proper type hints on all mixin properties
+  - Full backward compatibility maintained - no API changes
+
 ## [0.3.0] - 2026-02-06
 
 ### Breaking Changes

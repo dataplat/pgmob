@@ -90,7 +90,7 @@ class TestSchemas:
         assert psql(f"DROP SCHEMA {tmp_schema}", db=db).exit_code == 0
         schema_obj = schemas.new(name=tmp_schema, owner=role)
         schema_obj.create()
-        assert schema_obj.oid > 0
+        assert schema_obj.oid is not None and schema_obj.oid > 0
         assert (
             psql(self.schema_query.format(field="n.nspname", schema=tmp_schema), db=db).output == tmp_schema
         )
@@ -99,4 +99,7 @@ class TestSchemas:
 
     def test_script(self, schemas: objects.SchemaCollection):
         schema_obj = schemas["tmp"]
-        assert re.match("CREATE SCHEMA.* AUTHORIZATION .*", schema_obj.script().decode("utf8"))
+        script = schema_obj.script()
+        script_str = script.decode("utf8") if isinstance(script, bytes) else str(script)
+        match_result = re.match("CREATE SCHEMA.* AUTHORIZATION .*", script_str)
+        assert match_result is not None

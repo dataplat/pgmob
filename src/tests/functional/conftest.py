@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from types import ModuleType
 
 import docker
+import docker.errors
 import pytest
-from docker.types import ContainerSpec
 
 from pgmob.cluster import Cluster
 
@@ -124,7 +124,7 @@ def test_db(psql, container):
 
 
 @pytest.fixture
-def psql(container: ContainerSpec):
+def psql(container):
     """Callable that runs a command locally in postgresql container using psql binary.
 
     Args:

@@ -60,17 +60,17 @@ class TestHBARule:
 
 class TestHBARuleCollection:
     def test_collection_equality(self):
-        col1 = HBARuleCollection(None)
+        col1 = HBARuleCollection(None)  # type: ignore[arg-type]
         col1.extend([HBARule("host postgres")])
-        col2 = HBARuleCollection(None)
+        col2 = HBARuleCollection(None)  # type: ignore[arg-type]
         col2.extend([HBARule("host postgres")])
         assert col1 == col2
 
-        col2 = HBARuleCollection(None)
+        col2 = HBARuleCollection(None)  # type: ignore[arg-type]
         col2.extend([HBARule("host  postgres")])
         assert col1 == col2
 
-        col1 = HBARuleCollection(None)
+        col1 = HBARuleCollection(None)  # type: ignore[arg-type]
         col1.extend(
             [
                 HBARule("host postgres"),
@@ -81,7 +81,7 @@ class TestHBARuleCollection:
             ]
         )
 
-        col2 = HBARuleCollection(None)
+        col2 = HBARuleCollection(None)  # type: ignore[arg-type]
         col2.extend(
             [
                 HBARule("host \tpostgres"),
@@ -101,7 +101,7 @@ class TestHBARuleCollection:
         assert HBARule("#comment") != HBARule("")
 
     def test_collection_in(self):
-        collection = HBARuleCollection(None)
+        collection = HBARuleCollection(None)  # type: ignore[arg-type]
         collection.extend(
             [
                 "#hba file",
@@ -135,7 +135,7 @@ class TestHBARuleCollection:
         rule2 = HBARule(string2)
         rule3 = HBARule(string3)
         # adding rules
-        collection = HBARuleCollection(None)
+        collection = HBARuleCollection(None)  # type: ignore[arg-type]
         collection += [rule1]
         collection.extend([rule2])
         collection.append(rule3)
@@ -143,7 +143,7 @@ class TestHBARuleCollection:
         for r in collection:
             assert isinstance(r, HBARule)
         # appending a string
-        collection = HBARuleCollection(None)
+        collection = HBARuleCollection(None)  # type: ignore[arg-type]
         collection += [rule1]
         collection.append(string2)
         collection.extend([string3])
@@ -157,14 +157,14 @@ class TestHBARuleCollection:
         rule2 = HBARule(string2)
         rule3 = HBARule("local  postgres")
         # adding rules
-        collection = HBARuleCollection(None)
+        collection = HBARuleCollection(None)  # type: ignore[arg-type]
         collection += [rule1]
         collection.insert(0, rule3)
         assert collection == [rule3, rule1]
         for r in collection:
             assert isinstance(r, HBARule)
         # adding a string
-        collection = HBARuleCollection(None)
+        collection = HBARuleCollection(None)  # type: ignore[arg-type]
         collection += [rule1]
         collection.insert(1, string2)
         assert collection == [rule1, rule2]
@@ -176,11 +176,11 @@ class TestHBARuleCollection:
         rule1 = HBARule("#hba file")
         rule2 = HBARule(string2)
         rule3 = HBARule("local  postgres")
-        collection = HBARuleCollection(None)
+        collection = HBARuleCollection(None)  # type: ignore[arg-type]
         collection.extend([rule1, rule3])
         collection.remove(rule3)
         assert collection == [rule1]
-        collection = HBARuleCollection(None)
+        collection = HBARuleCollection(None)  # type: ignore[arg-type]
         collection.extend([rule1, rule2])
         collection.remove(string2)
         assert collection == [rule1]
@@ -189,7 +189,7 @@ class TestHBARuleCollection:
         string2 = "local postgres"
         rule1 = HBARule("#hba file")
         rule2 = HBARule(string2)
-        collection = HBARuleCollection(None)
+        collection = HBARuleCollection(None)  # type: ignore[arg-type]
         collection.extend([rule1, rule2])
         assert collection.index(rule1) == 0
         assert collection.index(string2) == 1

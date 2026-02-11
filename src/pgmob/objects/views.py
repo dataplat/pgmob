@@ -8,12 +8,19 @@ from .. import util
 from ..errors import PostgresError
 from ..sql import SQL
 from . import generic
+from .mixins import NamedObjectMixin, OwnedObjectMixin, SchemaObjectMixin
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
 
 
-class View(generic._DynamicObject, generic._CollectionChild):
+class View(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    SchemaObjectMixin,
+    generic._DynamicObject,
+    generic._CollectionChild,
+):
     """Postgres View object. Represents a view object on a Postgres server.
 
     Args:
@@ -44,8 +51,11 @@ class View(generic._DynamicObject, generic._CollectionChild):
         """Initialize a new View object"""
         super().__init__(kind="VIEW", cluster=cluster, oid=oid, name=name, schema=schema)
         generic._CollectionChild.__init__(self, parent=parent)
-        self._schema: str = schema
-        self._owner = owner
+
+        # Initialize mixins
+        self._init_name(name)
+        self._init_owner(owner)
+        self._init_schema(schema)
 
     def drop(self, cascade: bool = False):
         """Drops the view from the Postgres cluster
@@ -68,30 +78,6 @@ class View(generic._DynamicObject, generic._CollectionChild):
                 raise PostgresError("View with oid %s was not found", self.oid)
             mapper = _ViewMapper(result[0])
             mapper.map(self)
-
-    @property
-    def owner(self) -> str | None:
-        return self._owner
-
-    @owner.setter
-    def owner(self, owner: str):
-        generic._set_ephemeral_attr(self, "owner", owner)
-
-    @property
-    def schema(self) -> str:
-        return self._schema
-
-    @schema.setter
-    def schema(self, schema: str):
-        generic._set_ephemeral_attr(self, "schema", schema)
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name: str):
-        generic._set_ephemeral_attr(self, "name", name)
 
 
 class _ViewMapper(generic._BaseObjectMapper[View]):
