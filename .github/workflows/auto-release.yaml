@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - main
-    # paths:
-    #   - 'CHANGELOG.md'
+    paths:
+      - 'CHANGELOG.md'
 
 jobs:
   create-release:
@@ -21,11 +21,7 @@ jobs:
 
       - name: Parse Changelog
         id: changelog
-        run: |
-          RESULT=$(python3 .github/scripts/parse_changelog.py)
-          echo "version=$(echo "$RESULT" | jq -r '.version')" >> $GITHUB_OUTPUT
-          echo "tag=$(echo "$RESULT" | jq -r '.tag')" >> $GITHUB_OUTPUT
-          echo "body=$(echo "$RESULT" | jq -r '.body')" >> $GITHUB_OUTPUT
+        run: python3 .github/scripts/parse_changelog.py
 
       - name: Check if release exists
         id: check_release
@@ -49,11 +45,10 @@ jobs:
         run: |
           TAG="${{ steps.changelog.outputs.tag }}"
           VERSION="${{ steps.changelog.outputs.version }}"
-          BODY="${{ steps.changelog.outputs.body }}"
 
           gh release create "$TAG" \
             --title "Release $VERSION" \
-            --notes "$BODY" \
+            --notes-file release_body.txt \
             --verify-tag
 
       - name: Skip Release

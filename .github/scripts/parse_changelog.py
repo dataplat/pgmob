@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Parse CHANGELOG.md and extract the latest version and release notes."""
 
-import json
+import os
 import re
 import sys
 
@@ -38,9 +38,20 @@ def parse_changelog(filepath="CHANGELOG.md"):
         else:
             body = remaining.strip()
 
-    return {"version": version, "tag": f"v{version}", "date": date, "body": body}
+    # Write release body to file for gh command
+    with open("release_body.txt", "w") as f:
+        f.write(body)
+
+    # Write to GitHub Actions output
+    github_output = os.getenv("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a") as f:
+            f.write(f"version={version}\n")
+            f.write(f"tag=v{version}\n")
+
+    print(f"Parsed version {version} (tag: v{version})")
+    print(f"Release body: {len(body)} characters")
 
 
 if __name__ == "__main__":
-    result = parse_changelog()
-    print(json.dumps(result))
+    parse_changelog()
