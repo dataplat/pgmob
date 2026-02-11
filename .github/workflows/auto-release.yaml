@@ -19,7 +19,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Parse Changelog
+      - name: Parse Changelog and Validate Version
         id: changelog
         run: python3 .github/scripts/parse_changelog.py
 
@@ -31,15 +31,37 @@ jobs:
           TAG="${{ steps.changelog.outputs.tag }}"
 
           if gh release view "$TAG" &>/dev/null; then
-            echo "Release $TAG already exists"
-            echo "exists=true" >> $GITHUB_OUTPUT
+            # Check if it's a draft
+            IS_DRAFT=$(gh release view "$TAG" --json isDraft --jq '.isDraft')
+            if [ "$IS_DRAFT" = "true" ]; then
+              echo "Draft release $TAG exists, will retry publishing"
+              echo "exists=false" >> $GITHUB_OUTPUT
+              echo "is_draft=true" >> $GITHUB_OUTPUT
+            else
+              echo "Published release $TAG already exists"
+              echo "exists=true" >> $GITHUB_OUTPUT
+              echo "is_draft=false" >> $GITHUB_OUTPUT
+            fi
           else
             echo "Release $TAG does not exist"
             echo "exists=false" >> $GITHUB_OUTPUT
+            echo "is_draft=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Release
+      - name: Run Tests
         if: steps.check_release.outputs.exists == 'false'
+        uses: ./.github/actions/test
+
+      - name: Generate Test Badge
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          echo "" >> release_body.txt
+          echo "---" >> release_body.txt
+          echo "" >> release_body.txt
+          echo "**Tests:** ✅ All tests passed" >> release_body.txt
+
+      - name: Create Draft Release
+        if: steps.check_release.outputs.exists == 'false' && steps.check_release.outputs.is_draft == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -48,7 +70,65 @@ jobs:
 
           gh release create "$TAG" \
             --title "Release $VERSION" \
+            --notes-file release_body.txt \
+            --draft
+
+      - name: Update Draft Release Notes
+        if: steps.check_release.outputs.exists == 'false' && steps.check_release.outputs.is_draft == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.changelog.outputs.tag }}"
+          echo "Updating existing draft release $TAG"
+          gh release edit "$TAG" --notes-file release_body.txt
+
+      - name: Publish to PyPI Test
+        if: steps.check_release.outputs.exists == 'false'
+        uses: ./.github/actions/publish
+        with:
+          PUBLISH_INDEX: test-pypi
+          PYPI_TOKEN: ${{ secrets.PYPI_TEST_TOKEN }}
+
+      - name: Publish to PyPI
+        if: steps.check_release.outputs.exists == 'false'
+        uses: ./.github/actions/publish
+        with:
+          PUBLISH_INDEX: pypi
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Publish Release
+        if: steps.check_release.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.changelog.outputs.tag }}"
+
+          # Update release body to add PyPI link
+          echo "" >> release_body.txt
+          echo "**PyPI:** 📦 Published to [PyPI](https://pypi.org/project/pgmob/${{ steps.changelog.outputs.version }}/)" >> release_body.txt
+
+          # Publish the draft release
+          gh release edit "$TAG" \
+            --draft=false \
             --notes-file release_body.txt
+
+      - name: Release Published
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          echo "✓ Release ${{ steps.changelog.outputs.tag }} published successfully"
+          echo "✓ Published to PyPI: https://pypi.org/project/pgmob/${{ steps.changelog.outputs.version }}/"
+
+      - name: Cleanup on Failure
+        if: failure() && steps.check_release.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.changelog.outputs.tag }}"
+          echo "⚠️  Workflow failed. Draft release $TAG remains unpublished."
+          echo "⚠️  Fix the issue and push again to retry."
+          echo "⚠️  Or manually delete the draft and tag to start fresh:"
+          echo "    gh release delete $TAG --yes"
+          echo "    git push --delete origin $TAG"
 
       - name: Skip Release
         if: steps.check_release.outputs.exists == 'true'

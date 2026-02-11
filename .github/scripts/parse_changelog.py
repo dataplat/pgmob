@@ -6,6 +6,19 @@ import re
 import sys
 
 
+def get_pyproject_version():
+    """Extract version from pyproject.toml."""
+    try:
+        with open("pyproject.toml") as f:
+            content = f.read()
+        match = re.search(r'^version\s*=\s*"([^"]+)"', content, re.MULTILINE)
+        if match:
+            return match.group(1)
+    except FileNotFoundError:
+        pass
+    return None
+
+
 def parse_changelog(filepath="CHANGELOG.md"):
     """Extract the latest version and its content from CHANGELOG.md."""
     with open(filepath) as f:
@@ -23,6 +36,15 @@ def parse_changelog(filepath="CHANGELOG.md"):
     first_match = matches[0]
     version = first_match.group(1)
     date = first_match.group(2)
+
+    # Validate version matches pyproject.toml
+    pyproject_version = get_pyproject_version()
+    if pyproject_version and pyproject_version != version:
+        print(
+            f"Error: Version mismatch! CHANGELOG.md has {version} but pyproject.toml has {pyproject_version}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     # Extract content between first and second version headers
     start_pos = first_match.end()
@@ -49,8 +71,8 @@ def parse_changelog(filepath="CHANGELOG.md"):
             f.write(f"version={version}\n")
             f.write(f"tag=v{version}\n")
 
-    print(f"Parsed version {version} (tag: v{version})")
-    print(f"Release body: {len(body)} characters")
+    print(f"✓ Version validated: {version} (tag: v{version})")
+    print(f"✓ Release body: {len(body)} characters")
 
 
 if __name__ == "__main__":
