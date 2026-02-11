@@ -171,24 +171,38 @@ table_names = cluster.tables.keys()  # Fast - uses metadata
 
 ## Inheritance and Mixins
 
-### Using Mixins
-```python
-from .objects.generic import (
-    _DynamicObject,
-    _CollectionChild,
-    OwnedObjectMixin,
-    SchemaObjectMixin,
-    NamedObjectMixin
-)
+### Overview
 
-class MyObject(
-    _DynamicObject,
-    _CollectionChild,
+PGMob uses mixins to provide common properties (name, owner, schema, tablespace) to PostgreSQL object classes. Mixins eliminate code duplication and ensure consistent behavior across all object types.
+
+Available mixins:
+- **NamedObjectMixin**: Provides `name` property for objects with names
+- **OwnedObjectMixin**: Provides `owner` property for objects with owners
+- **SchemaObjectMixin**: Provides `schema` property for objects in schemas
+- **TablespaceObjectMixin**: Provides `tablespace` property for objects in tablespaces
+
+### Mixin Initialization Pattern
+
+Mixins use explicit initialization methods (`_init_*()`) that must be called in the object's `__init__` method. This avoids constructor conflicts with multiple inheritance.
+
+```python
+from .objects.mixins import (
+    NamedObjectMixin,
     OwnedObjectMixin,
     SchemaObjectMixin,
-    NamedObjectMixin
+    TablespaceObjectMixin
+)
+from .objects.generic import _DynamicObject, _CollectionChild
+
+class Table(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    SchemaObjectMixin,
+    TablespaceObjectMixin,
+    _DynamicObject,
+    _CollectionChild
 ):
-    """Object with common properties via mixins."""
+    """Table object with mixin properties."""
 
     def __init__(
         self,
@@ -196,18 +210,156 @@ class MyObject(
         schema: str = "public",
         owner: Optional[str] = None,
         cluster: "Cluster" = None,
-        **kwargs
+        parent: "TableCollection" = None,
+        oid: Optional[int] = None
     ):
-        super().__init__(kind="MY_OBJECT", cluster=cluster, name=name, schema=schema)
-        _CollectionChild.__init__(self, parent=kwargs.get('parent'))
+        # Initialize base classes
+        super().__init__(kind="TABLE", cluster=cluster, oid=oid, name=name, schema=schema)
+        _CollectionChild.__init__(self, parent=parent)
 
-        # Initialize mixins
-        self.__init_name__(name)
-        self.__init_schema__(schema)
-        self.__init_owner__(owner)
+        # Initialize mixins - REQUIRED
+        self._init_name(name)
+        self._init_owner(owner)
+        self._init_schema(schema)
+        self._init_tablespace(None)
 
         # Object-specific attributes
-        self._custom_attr = kwargs.get('custom_attr')
+        self._row_security: bool = False
+```
+
+### Creating Objects with Mixins
+
+#### Example 1: Object with Name, Owner, and Schema
+
+```python
+from .objects.mixins import NamedObjectMixin, OwnedObjectMixin, SchemaObjectMixin
+from .objects.generic import _DynamicObject, _CollectionChild
+
+class Sequence(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    SchemaObjectMixin,
+    _DynamicObject,
+    _CollectionChild
+):
+    """Sequence object."""
+
+    def __init__(
+        self,
+        name: str,
+        schema: str = "public",
+        owner: Optional[str] = None,
+        cluster: "Cluster" = None,
+        parent: "SequenceCollection" = None,
+        oid: Optional[int] = None
+    ):
+        super().__init__(kind="SEQUENCE", cluster=cluster, oid=oid, name=name, schema=schema)
+        _CollectionChild.__init__(self, parent=parent)
+
+        # Initialize mixins
+        self._init_name(name)
+        self._init_owner(owner)
+        self._init_schema(schema)
+
+        # Sequence-specific attributes
+        self._start_value: Optional[int] = None
+        self._increment_by: Optional[int] = None
+```
+
+#### Example 2: Object with Only Name and Owner
+
+```python
+from .objects.mixins import NamedObjectMixin, OwnedObjectMixin
+from .objects.generic import _DynamicObject, _CollectionChild
+
+class Schema(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    _DynamicObject,
+    _CollectionChild
+):
+    """Schema object (does NOT inherit SchemaObjectMixin)."""
+
+    def __init__(
+        self,
+        name: str,
+        owner: Optional[str] = None,
+        cluster: "Cluster" = None,
+        parent: "SchemaCollection" = None,
+        oid: Optional[int] = None
+    ):
+        super().__init__(kind="SCHEMA", cluster=cluster, oid=oid, name=name)
+        _CollectionChild.__init__(self, parent=parent)
+
+        # Initialize mixins
+        self._init_name(name)
+        self._init_owner(owner)
+```
+
+#### Example 3: Object with Only Name
+
+```python
+from .objects.mixins import NamedObjectMixin
+from .objects.generic import _DynamicObject, _CollectionChild
+
+class Role(
+    NamedObjectMixin,
+    _DynamicObject,
+    _CollectionChild
+):
+    """Role object."""
+
+    def __init__(
+        self,
+        name: str,
+        cluster: "Cluster" = None,
+        parent: "RoleCollection" = None,
+        oid: Optional[int] = None,
+        password: Optional[str] = None
+    ):
+        super().__init__(kind="ROLE", cluster=cluster, oid=oid, name=name)
+        _CollectionChild.__init__(self, parent=parent)
+
+        # Initialize mixin
+        self._init_name(name)
+
+        # Role-specific attributes
+        self._password = password
+        self._superuser: bool = False
+        self._login: bool = False
+```
+
+### Which Mixins to Use
+
+Choose mixins based on the PostgreSQL object type:
+
+| Object Type | NamedObjectMixin | OwnedObjectMixin | SchemaObjectMixin | TablespaceObjectMixin |
+|-------------|------------------|------------------|-------------------|----------------------|
+| Table       | ✓                | ✓                | ✓                 | ✓                    |
+| View        | ✓                | ✓                | ✓                 | ✗                    |
+| Sequence    | ✓                | ✓                | ✓                 | ✗                    |
+| Schema      | ✓                | ✓                | ✗                 | ✗                    |
+| Role        | ✓                | ✗                | ✗                 | ✗                    |
+| Database    | ✓                | ✓                | ✗                 | ✓                    |
+| Procedure   | ✓                | ✓                | ✓                 | ✗                    |
+
+**Note**: Schema objects do NOT inherit from SchemaObjectMixin (schemas don't belong to schemas).
+
+### Using Mixin Properties
+
+Mixin properties work exactly like regular properties with change tracking:
+
+```python
+# Get property value
+table = cluster.tables["users"]
+print(table.name)    # From NamedObjectMixin
+print(table.owner)   # From OwnedObjectMixin
+print(table.schema)  # From SchemaObjectMixin
+
+# Set property value (queues change for alter())
+table.owner = "new_owner"
+table.schema = "app_schema"
+table.alter()  # Apply changes to database
 ```
 
 ### Change Tracking Pattern

@@ -86,6 +86,16 @@ class _BaseCollection:
 
 class _LazyBaseCollection:
     pass
+
+# Suffix with "Mixin" for mixin classes
+class NamedObjectMixin:
+    pass
+
+class OwnedObjectMixin:
+    pass
+
+class SchemaObjectMixin:
+    pass
 ```
 
 ### Functions and Methods
@@ -128,6 +138,174 @@ def table_name(self) -> str:
 @property
 def is_connected(self) -> bool:
     return self._is_connected
+```
+
+## Mixin Patterns
+
+### Mixin Naming Convention
+
+All mixin classes MUST be suffixed with "Mixin" to clearly identify them:
+
+```python
+# Good: Clear mixin naming
+class NamedObjectMixin:
+    """Provides name property."""
+    pass
+
+class OwnedObjectMixin:
+    """Provides owner property."""
+    pass
+
+# Bad: Missing Mixin suffix
+class NamedObject:  # Unclear if this is a mixin or concrete class
+    pass
+```
+
+### Mixin Initialization Pattern
+
+Mixins MUST NOT define `__init__` methods to avoid Method Resolution Order (MRO) conflicts. Instead, mixins provide explicit initialization methods prefixed with `_init_`:
+
+```python
+class NamedObjectMixin:
+    """Mixin providing name property.
+
+    Objects using this mixin must call _init_name() in their __init__ method.
+    """
+
+    def _init_name(self, name: str) -> None:
+        """Initialize the name attribute.
+
+        Args:
+            name: The object's name
+        """
+        self._name: str = name
+
+    @property
+    def name(self) -> str:
+        """The object's name."""
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        """Set the object's name."""
+        from . import generic
+        generic._set_ephemeral_attr(self, "name", value)
+```
+
+### Calling Mixin Initialization Methods
+
+Objects using mixins MUST call each mixin's `_init_*()` method in their `__init__`:
+
+```python
+class Table(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    SchemaObjectMixin,
+    _DynamicObject,
+    _CollectionChild
+):
+    """Table with mixin properties."""
+
+    def __init__(
+        self,
+        name: str,
+        schema: str = "public",
+        owner: Optional[str] = None,
+        cluster: "Cluster" = None,
+        parent: "TableCollection" = None
+    ):
+        # Initialize base classes first
+        super().__init__(kind="TABLE", cluster=cluster, name=name, schema=schema)
+        _CollectionChild.__init__(self, parent=parent)
+
+        # Initialize mixins - REQUIRED
+        self._init_name(name)
+        self._init_owner(owner)
+        self._init_schema(schema)
+
+        # Object-specific attributes
+        self._row_security: bool = False
+```
+
+### Mixin Inheritance Order
+
+When using multiple mixins, follow this inheritance order to ensure proper MRO:
+
+1. Mixins (left to right, most specific to least specific)
+2. Base classes (_DynamicObject, _CollectionChild, etc.)
+3. object (implicit)
+
+```python
+# Good: Mixins before base classes
+class Table(
+    NamedObjectMixin,        # Mixin 1
+    OwnedObjectMixin,        # Mixin 2
+    SchemaObjectMixin,       # Mixin 3
+    TablespaceObjectMixin,   # Mixin 4
+    _DynamicObject,          # Base class 1
+    _CollectionChild         # Base class 2
+):
+    pass
+
+# Bad: Base classes before mixins
+class Table(
+    _DynamicObject,          # Wrong order
+    NamedObjectMixin,
+    OwnedObjectMixin
+):
+    pass
+```
+
+### Why Mixins Don't Define __init__
+
+Defining `__init__` in mixins causes MRO conflicts when multiple mixins are used:
+
+```python
+# Bad: Mixin with __init__ (causes MRO issues)
+class BadMixin:
+    def __init__(self, name: str):
+        self._name = name  # Conflicts with other __init__ methods
+
+# Good: Mixin with explicit initialization
+class GoodMixin:
+    def _init_name(self, name: str) -> None:
+        """Initialize name. Call from object's __init__."""
+        self._name = name
+```
+
+The explicit initialization pattern:
+- Avoids constructor signature conflicts
+- Makes initialization order explicit and controllable
+- Works correctly with Python's MRO
+- Allows objects to choose which mixins to initialize
+
+### Mixin Property Pattern
+
+All mixin properties follow the same pattern:
+
+1. **Private attribute**: Store value in `self._attribute_name`
+2. **Property getter**: Return the private attribute
+3. **Property setter**: Call `_set_ephemeral_attr()` for change tracking
+4. **Initialization method**: Set initial value via `_init_*()` method
+
+```python
+class OwnedObjectMixin:
+    """Mixin providing owner property."""
+
+    def _init_owner(self, owner: Optional[str] = None) -> None:
+        """Initialize owner attribute."""
+        self._owner: Optional[str] = owner
+
+    @property
+    def owner(self) -> Optional[str]:
+        """The object's owner."""
+        return self._owner
+
+    @owner.setter
+    def owner(self, value: str) -> None:
+        """Set the object's owner. Queues change for alter()."""
+        from . import generic
+        generic._set_ephemeral_attr(self, "owner", value)
 ```
 
 ## Type Hints

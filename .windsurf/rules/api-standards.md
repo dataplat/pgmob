@@ -224,6 +224,150 @@ def owner(self, value: str) -> None:
     generic._set_ephemeral_attr(self, "owner", value)
 ```
 
+### Mixin Properties
+
+Mixin properties follow the same API standards as regular properties. They provide consistent getter/setter behavior with change tracking.
+
+#### Mixin Property Docstrings
+
+Mixin properties MUST include docstrings that describe the property:
+
+```python
+class NamedObjectMixin:
+    """Mixin providing name property with change tracking."""
+
+    @property
+    def name(self) -> str:
+        """The object's name.
+
+        Returns:
+            The name of the database object.
+        """
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        """Set the object's name.
+
+        Changes are queued and applied when alter() is called.
+
+        Args:
+            value: New name for the object.
+
+        Example:
+            >>> table.name = "new_table_name"
+            >>> table.alter()  # Apply the name change
+        """
+        from . import generic
+        generic._set_ephemeral_attr(self, "name", value)
+```
+
+#### Mixin Initialization in Object __init__
+
+Objects using mixins MUST call mixin initialization methods in their `__init__`:
+
+```python
+class Table(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    SchemaObjectMixin,
+    _DynamicObject,
+    _CollectionChild
+):
+    """Postgres Table object.
+
+    Args:
+        name: Table name
+        schema: Schema name (default: 'public')
+        owner: Table owner
+        cluster: Postgres cluster object
+        parent: Parent collection
+        oid: Table OID
+
+    Attributes:
+        name: Table name (from NamedObjectMixin)
+        owner: Table owner (from OwnedObjectMixin)
+        schema: Schema name (from SchemaObjectMixin)
+        tablespace: Tablespace (from TablespaceObjectMixin)
+        row_security: Whether row security is enabled
+        oid: Table OID
+    """
+
+    def __init__(
+        self,
+        name: str,
+        schema: str = "public",
+        owner: Optional[str] = None,
+        cluster: "Cluster" = None,
+        parent: "TableCollection" = None,
+        oid: Optional[int] = None
+    ):
+        # Initialize base classes
+        super().__init__(kind="TABLE", cluster=cluster, oid=oid, name=name, schema=schema)
+        _CollectionChild.__init__(self, parent=parent)
+
+        # Initialize mixins - REQUIRED for mixin properties to work
+        self._init_name(name)
+        self._init_owner(owner)
+        self._init_schema(schema)
+        self._init_tablespace(None)
+
+        # Table-specific attributes
+        self._row_security: bool = False
+```
+
+#### Documenting Mixin Properties in Class Docstrings
+
+When a class uses mixins, document which properties come from mixins in the class docstring:
+
+```python
+class Sequence(
+    NamedObjectMixin,
+    OwnedObjectMixin,
+    SchemaObjectMixin,
+    _DynamicObject,
+    _CollectionChild
+):
+    """Postgres sequence object.
+
+    Attributes:
+        name: Sequence name (from NamedObjectMixin)
+        owner: Sequence owner (from OwnedObjectMixin)
+        schema: Schema name (from SchemaObjectMixin)
+        data_type: Data type of the sequence
+        start_value: Starting value
+        increment_by: Increment value
+        min_value: Minimum value
+        max_value: Maximum value
+    """
+```
+
+#### Mixin Property Behavior
+
+Mixin properties behave identically to regular properties:
+
+- **Getters**: Return the current value
+- **Setters**: Queue changes via `_set_ephemeral_attr()` for later application
+- **Change tracking**: Changes are stored in `self._changes` dictionary
+- **Application**: Changes are applied when `alter()` is called
+
+```python
+# Using mixin properties
+table = cluster.tables["users"]
+
+# Get property (from NamedObjectMixin)
+print(table.name)  # "users"
+
+# Set property (queues change)
+table.name = "app_users"
+
+# Property is updated locally
+print(table.name)  # "app_users"
+
+# Apply change to database
+table.alter()  # Executes: ALTER TABLE users RENAME TO app_users
+```
+
 ### Lazy Properties
 ```python
 from ._decorators import get_lazy_property
