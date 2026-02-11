@@ -103,14 +103,8 @@ jobs:
         run: |
           TAG="${{ steps.changelog.outputs.tag }}"
 
-          # Update release body to add PyPI link
-          echo "" >> release_body.txt
-          echo "**PyPI:** 📦 Published to [PyPI](https://pypi.org/project/pgmob/${{ steps.changelog.outputs.version }}/)" >> release_body.txt
-
-          # Publish the draft release
-          gh release edit "$TAG" \
-            --draft=false \
-            --notes-file release_body.txt
+          # Just publish the draft release without changing the body
+          gh release edit "$TAG" --draft=false
 
       - name: Release Published
         if: steps.check_release.outputs.exists == 'false'
