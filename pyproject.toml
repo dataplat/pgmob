@@ -1,6 +1,6 @@
 [project]
 name = "pgmob"
-version = "0.3.0"
+version = "0.3.1"
 description = "Postgres Managed Objects - a Postgres database management interface"
 authors = [
     {name = "Kirill Kravtsov", email = "nvarscar@gmail.com"}
