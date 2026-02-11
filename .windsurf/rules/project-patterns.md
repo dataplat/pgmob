@@ -527,6 +527,112 @@ def bulk_alter_owner(self, tables: List[Table], new_owner: str) -> None:
                 self.execute(stmt)
 ```
 
+## Development Environment Setup
+
+### CRITICAL: Initial Setup Required
+
+Before starting any development work, you MUST set up the development environment:
+
+```bash
+# Install all dependencies including dev tools
+uv sync --extra dev --extra psycopg2-binary
+```
+
+This command:
+- Installs all project dependencies
+- Installs development tools (pytest, ruff, ty, etc.)
+- Installs the psycopg2-binary adapter for PostgreSQL
+
+Run this command once at the start of development or whenever dependencies change.
+
+## Code Quality Verification
+
+### CRITICAL: Always Run After Code Changes
+
+After implementing ANY code change to the codebase, you MUST run the following checks in order:
+
+1. **Unit Tests**: Verify functionality works correctly
+2. **Linting**: Ensure code style compliance
+3. **Type Checks**: Verify type safety
+
+### Running Tests
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run specific test file
+uv run pytest src/tests/test_mixins.py
+
+# Run with coverage
+uv run pytest --cov=src/pgmob --cov-report=term-missing
+
+# Run tests matching pattern
+uv run pytest -k "test_mixin"
+```
+
+### Running Linting
+
+```bash
+# Run ruff linter (checks code style and common issues)
+uv run ruff check src/
+
+# Run ruff with auto-fix
+uv run ruff check --fix src/
+
+# Check specific file
+uv run ruff check src/pgmob/objects/mixins.py
+```
+
+### Running Type Checks
+
+```bash
+# Run ty type checker
+uv run ty check
+
+# Type checking is project-wide, no single file option
+```
+
+### Complete Verification Workflow
+
+After making code changes, run this complete workflow:
+
+```bash
+# 1. Run tests
+uv run pytest
+
+# 2. Run linting
+uv run ruff check src/
+
+# 3. Run type checks
+uv run ty check
+```
+
+# 3. Run type checks
+uv run ty check
+```
+
+If any check fails, fix the issues before proceeding. Do not consider a code change complete until all three checks pass.
+
+### Handling Check Failures
+
+**Test Failures:**
+- Review the test output to understand what failed
+- Fix the implementation or update tests if requirements changed
+- Re-run tests to verify the fix
+
+**Linting Failures:**
+- Use `uv run ruff check --fix` to auto-fix simple issues
+- Manually fix remaining issues following PEP 8 and project conventions
+- Re-run linting to verify compliance
+
+**Type Check Failures:**
+- Add missing type hints
+- Fix incorrect type annotations
+- Use `# type: ignore` only as a last resort with a comment explaining why
+- Re-run type checks to verify fixes
+- Note: Type warnings in mixin classes about `_set_ephemeral_attr` expecting `_DynamicObject` are expected and safe to ignore, as mixins are only used with classes that inherit from `_DynamicObject`
+
 ## Documentation Patterns
 
 ### Example in Docstring
