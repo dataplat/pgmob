@@ -14,12 +14,6 @@ jobs:
         uses: actions/checkout@v3
       - name: Run tests
         uses: ./.github/actions/test
-      # - name: Bump version
-      #   uses: ./.github/actions/bump-version
-      #   with:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
-      #     GIT_EMAIL: ${{ secrets.GIT_EMAIL }}
       - name: Publish to PyPI Test
         uses: ./.github/actions/publish
         with:

@@ -5,6 +5,7 @@ on:
     paths:
       - 'docs/**'
       - '.github/**'
+      - 'src/pgmob/**'
   pull_request:
     branches:
       - main

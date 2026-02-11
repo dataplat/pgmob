@@ -1,0 +1,119 @@
+name: Auto Release from Changelog
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'CHANGELOG.md'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse Changelog
+        id: changelog
+        run: |
+          # Extract the latest version and its content from CHANGELOG.md
+          python3 << 'EOF'
+          import re
+          import sys
+
+          with open('CHANGELOG.md', 'r') as f:
+              content = f.read()
+
+          # Match version headers like ## [0.3.1] - 2026-02-10
+          version_pattern = r'^## \[([^\]]+)\] - (\d{4}-\d{2}-\d{2})'
+          matches = list(re.finditer(version_pattern, content, re.MULTILINE))
+
+          if not matches:
+              print("No version found in CHANGELOG.md", file=sys.stderr)
+              sys.exit(1)
+
+          # Get the first (latest) version
+          first_match = matches[0]
+          version = first_match.group(1)
+          date = first_match.group(2)
+
+          # Extract content between first and second version headers
+          start_pos = first_match.end()
+          if len(matches) > 1:
+              end_pos = matches[1].start()
+              body = content[start_pos:end_pos].strip()
+          else:
+              # If only one version, get everything after it until the end or separator
+              remaining = content[start_pos:]
+              separator_match = re.search(r'^---$', remaining, re.MULTILINE)
+              if separator_match:
+                  body = remaining[:separator_match.start()].strip()
+              else:
+                  body = remaining.strip()
+
+          # Clean up the body - remove leading/trailing whitespace
+          body = body.strip()
+
+          # Write outputs
+          with open('version.txt', 'w') as f:
+              f.write(version)
+          with open('body.txt', 'w') as f:
+              f.write(body)
+
+          print(f"Version: {version}")
+          print(f"Date: {date}")
+          print(f"Body length: {len(body)} characters")
+          EOF
+
+          # Set outputs
+          VERSION=$(cat version.txt)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+          # For multiline output, use delimiter
+          {
+            echo 'body<<EOF_CHANGELOG'
+            cat body.txt
+            echo EOF_CHANGELOG
+          } >> $GITHUB_OUTPUT
+
+      - name: Check if release exists
+        id: check_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.changelog.outputs.tag }}"
+
+          # Check if release exists
+          if gh release view "$TAG" &>/dev/null; then
+            echo "Release $TAG already exists"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Release $TAG does not exist"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        if: steps.check_release.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.changelog.outputs.tag }}"
+          VERSION="${{ steps.changelog.outputs.version }}"
+
+          # Create release with changelog body
+          gh release create "$TAG" \
+            --title "Release $VERSION" \
+            --notes "${{ steps.changelog.outputs.body }}" \
+            --verify-tag
+
+      - name: Skip Release
+        if: steps.check_release.outputs.exists == 'true'
+        run: |
+          echo "Release ${{ steps.changelog.outputs.tag }} already exists. Skipping creation."
