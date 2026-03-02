@@ -26,7 +26,7 @@ This directory contains the source of truth for all AI agent steering rules used
 
 ### Kiro
 - Include files in `.kiro/steering/` use `#[[file:...]]` syntax
-- Example: `#[[file:../../.windsurf/rules/api-standards.md]]`
+- Example: `#[[file:.windsurf/rules/api-standards.md]]`
 - Frontmatter `inclusion: always` ensures files are always loaded
 
 ## Frontmatter Format

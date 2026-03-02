@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Run Tests After Task",
+  "description": "Automatically runs unit tests after completing a task to verify code changes don't break existing functionality",
+  "version": "1",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "uv run pytest -vv",
+    "timeout": 30
+  },
+  "workspaceFolderName": "pgmob",
+  "shortName": "test-after-task"
+}
