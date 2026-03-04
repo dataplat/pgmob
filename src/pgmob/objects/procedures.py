@@ -83,6 +83,8 @@ class _BaseProcedure(
         oid (int): Procedure OID
     """
 
+    _mapper_class: type[_BaseProcedureMapper]
+
     def __init__(
         self,
         name: str,
@@ -172,8 +174,7 @@ class _BaseProcedure(
             result = self.cluster.execute(sql, (self.oid))
             if not result:
                 raise PostgresError("Procedure with oid %s was not found", self.oid)
-            mapper = _ProcedureMapper(result[0])
-            mapper.map(self)
+            self._mapper_class(result[0]).map(self)
 
 
 class Procedure(_BaseProcedure):
@@ -318,8 +319,8 @@ class Aggregate(_BaseProcedure):
         super().__init__(*args, **kwargs)
 
 
-class _ProcedureMapper(generic._BaseObjectMapper[_BaseProcedure]):
-    """Maps out a resultset from a database query to a procedure object"""
+class _BaseProcedureMapper(generic._BaseObjectMapper[_BaseProcedure]):
+    """Shared mapper base for all procedure kinds."""
 
     attributes = [
         "oid",
@@ -338,17 +339,26 @@ class _ProcedureMapper(generic._BaseObjectMapper[_BaseProcedure]):
     exclude = ["kind", "volatility", "parallel_mode"]
 
     def map(self, obj: _BaseProcedure) -> _BaseProcedure:
-        """Assigns attributes to the Postgres procedure based on
-        the definition resultset and returns the object.
-
-        Args:
-            obj (_ProcedureBase): Postgres procedure object
-        """
         super().map(obj)
         obj._volatility = Volatility(self["volatility"])
         obj._parallel_mode = ParallelSafety(self["parallel_mode"])
-
         return obj
+
+
+class _FunctionMapper(_BaseProcedureMapper, generic._BaseObjectMapper[Function]):
+    """Maps a resultset row to a Function object."""
+
+
+class _ProcedureMapper(_BaseProcedureMapper, generic._BaseObjectMapper[Procedure]):
+    """Maps a resultset row to a Procedure object."""
+
+
+class _WindowFunctionMapper(_BaseProcedureMapper, generic._BaseObjectMapper[WindowFunction]):
+    """Maps a resultset row to a WindowFunction object."""
+
+
+class _AggregateMapper(_BaseProcedureMapper, generic._BaseObjectMapper[Aggregate]):
+    """Maps a resultset row to an Aggregate object."""
 
 
 class ProcedureVariations(list[_BaseProcedure], generic._ClusterBound):
@@ -359,12 +369,18 @@ class ProcedureVariations(list[_BaseProcedure], generic._ClusterBound):
         generic._ClusterBound.__init__(self, cluster=cluster)
 
 
-_procedure_kinds: dict[str, type[_BaseProcedure]] = {
-    "f": Function,
-    "p": Procedure,
-    "w": WindowFunction,
-    "a": Aggregate,
+_procedure_mapper_kinds: dict[str, tuple[type[_BaseProcedure], type[_BaseProcedureMapper]]] = {
+    "f": (Function, _FunctionMapper),
+    "p": (Procedure, _ProcedureMapper),
+    "w": (WindowFunction, _WindowFunctionMapper),
+    "a": (Aggregate, _AggregateMapper),
 }
+
+# Wire each subclass to its mapper — used by _BaseProcedure.refresh()
+Function._mapper_class = _FunctionMapper
+Procedure._mapper_class = _ProcedureMapper
+WindowFunction._mapper_class = _WindowFunctionMapper
+Aggregate._mapper_class = _AggregateMapper
 
 
 class ProcedureCollection(generic._BaseCollection[ProcedureVariations]):
@@ -374,39 +390,27 @@ class ProcedureCollection(generic._BaseCollection[ProcedureVariations]):
     set of arguments.
     """
 
-    def __init__(self, cluster: Cluster):
+    def __init__(self, cluster: Cluster, schema: str | None = None):
         super().__init__(cluster=cluster)
+        self.provider = cluster.metadata_provider
+        self._schema = schema
         if cluster:
             self.refresh()
 
     def refresh(self):
         """Resets any pending changes and retrieves objects from the cluster"""
         super().refresh()
-        sql = util.get_sql("get_procedure", self.cluster.version) + SQL(
-            " ORDER BY proname, schemaname, proargtypes"
+        procedure_data = self.provider.get_procedures(self._schema)
+        grouped_by_index = util.group_by(
+            lambda x: self._index(name=x["name"], schema=x["schema"]), procedure_data
         )
-        result = self.cluster.execute(sql)
-        if result:
-            mappers = [_ProcedureMapper(x) for x in result]
-            # group by schema and name for index access, then put each group into a ProcedureVariations list
-            grouped_by_index = util.group_by(
-                lambda x: self._index(name=x["name"], schema=x["schema"]), mappers
-            )
-            for key, mapper_group in grouped_by_index.items():
-                self[key] = ProcedureVariations(cluster=self.cluster)
-                for mapper in mapper_group:
-                    kind = mapper["kind"]
-                    try:
-                        proc_class = _procedure_kinds[kind]
-                    except KeyError:
-                        raise PostgresError(f"Unknown procedure kind: {kind}")
-                    # Subclasses provide 'kind' via kwargs in their __init__
-                    # Type checker can't verify dynamic class instantiation signature compatibility
-                    proc = proc_class(  # type: ignore[call-arg]  # Dynamic instantiation: subclasses add 'kind' in __init__
-                        name=mapper["name"],
-                        schema=mapper["schema"],
-                        oid=mapper["oid"],
-                        cluster=self.cluster,
-                        parent=self,
-                    )
-                    self[key].append(mapper.map(proc))
+        for key, data_group in grouped_by_index.items():
+            self[key] = ProcedureVariations(cluster=self.cluster)
+            for data in data_group:
+                kind = data["kind"]
+                try:
+                    obj_class, mapper_class = _procedure_mapper_kinds[kind]
+                except KeyError:
+                    raise PostgresError(f"Unknown procedure kind: {kind}")
+                proc = mapper_class.from_dict(obj_class, data, cluster=self.cluster, parent=self)
+                self[key].append(proc)

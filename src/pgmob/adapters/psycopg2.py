@@ -1,4 +1,5 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Generator, Sequence
+from contextlib import contextmanager
 from typing import Any
 
 # psycopg2 is a third-party library without type stubs
@@ -10,7 +11,7 @@ import psycopg2.sql
 
 from ..sql import SQL, Composable, Identifier, Literal
 from . import AdapterError, NoResultsToFetch, ProgrammingError
-from .base import BaseAdapter, BaseCursor, BaseLargeObject
+from .base import BaseAdapter, BaseCursor, BaseLargeObject, BaseNamedCursor, BaseRow
 
 
 class Psycopg2Cursor(BaseCursor):
@@ -97,6 +98,74 @@ class Psycopg2Cursor(BaseCursor):
 
         Returns:
             Any: a single row of the ResultSet"""
+        return self._try_exec(lambda: self.cursor.fetchone())
+
+
+class Psycopg2NamedCursor(BaseNamedCursor):
+    """Psycopg2 Named Cursor Adapter. Returns named-tuple-style rows via psycopg2's NamedTupleCursor.
+
+    Args:
+        connection (Any): psycopg2 connection object
+    """
+
+    def __init__(self, connection: Any) -> None:
+        self.cursor = connection.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
+
+    @property
+    def statusmessage(self) -> str:
+        """Cursor status message"""
+        return self.cursor.statusmessage
+
+    @property
+    def closed(self) -> bool:
+        """Specifies if the cursor is closed"""
+        return self.cursor.closed
+
+    @property
+    def rowcount(self) -> int:
+        """Row count of the most recent execute"""
+        return self.cursor.rowcount
+
+    def _convert_query(self, query: Composable | str) -> psycopg2.sql.Composable | str:
+        conv_map = {SQL: psycopg2.sql.SQL, Literal: psycopg2.sql.Literal, Identifier: psycopg2.sql.Identifier}
+        if isinstance(query, Composable):
+            return psycopg2.sql.Composed([conv_map[part.__class__](part.value()) for part in query.compose()])
+        else:
+            return query
+
+    def _try_exec(self, func: Callable) -> Any:
+        try:
+            return func()
+        except psycopg2.ProgrammingError as e:
+            if str(e) == "no results to fetch":
+                raise NoResultsToFetch("No results to fetch") from e
+            else:
+                raise ProgrammingError("Adapter reported a programming error") from e
+        except psycopg2.Error as e:
+            raise AdapterError("Adapter reported an error") from e
+
+    def close(self) -> None:
+        """Close the currently open cursor"""
+        return self.cursor.close()
+
+    def execute(self, query: Composable | str, params: tuple | None = None) -> None:
+        """Execute a query with parameters"""
+        self._try_exec(lambda: self.cursor.execute(self._convert_query(query), params))
+
+    def executemany(self, query: Composable | str, params: Sequence[tuple] | None = None) -> None:
+        """Execute a query with multiple parameter sets"""
+        self._try_exec(lambda: self.cursor.executemany(self._convert_query(query), params))
+
+    def mogrify(self, query: Composable | str, params: tuple | None = None) -> bytes:
+        """Returns a parsed SQL query based on the parameters provided"""
+        return self._try_exec(lambda: self.cursor.mogrify(self._convert_query(query), params))
+
+    def fetchall(self) -> list[BaseRow]:
+        """Fetch all rows as named-tuple-style objects"""
+        return self._try_exec(lambda: self.cursor.fetchall())
+
+    def fetchone(self) -> BaseRow | None:
+        """Fetch one row as a named-tuple-style object"""
         return self._try_exec(lambda: self.cursor.fetchone())
 
 
@@ -226,3 +295,19 @@ class Psycopg2Adapter(BaseAdapter):
     def set_autocommit(self, state: bool) -> None:
         """Set autocommit status"""
         self.connection.autocommit = bool(state)
+
+    @contextmanager
+    def named_cursor(self) -> Generator[Psycopg2NamedCursor]:
+        """Return a context manager that yields a Psycopg2NamedCursor.
+
+        Usage::
+
+            with adapter.named_cursor() as cur:
+                cur.execute(query)
+                rows = cur.fetchall()
+        """
+        cur = Psycopg2NamedCursor(connection=self.connection)
+        try:
+            yield cur
+        finally:
+            cur.close()

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .. import util
 from ..errors import PostgresError
 from ..sql import SQL, Literal
 from . import generic
@@ -12,6 +11,7 @@ from .mixins import NamedObjectMixin, OwnedObjectMixin, SchemaObjectMixin
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
+    from ..providers.base import MetadataProvider
 
 
 class Sequence(
@@ -199,12 +199,14 @@ class Sequence(
         """Re-initializes the object, refreshing its properties from Postgres cluster"""
         super().refresh()
         if not self._ephemeral:
-            sql = util.get_sql("get_sequence") + SQL(" WHERE c.oid = %s")
-            result = self.cluster.execute(sql, (self.oid,))
-            if not result:
+            assert self.oid is not None
+            data = self.cluster.metadata_provider.get_sequence(self.oid)
+            if not data:
                 raise PostgresError("Sequence with oid %s was not found", self.oid)
-            mapper = _SequenceMapper(result[0])
+            mapper = _SequenceMapper(tuple(data[attr] for attr in _SequenceMapper.attributes))
             mapper.map(self)
+            self._fqn.name = self._name
+            self._fqn.schema = self._schema
 
 
 class _SequenceMapper(generic._BaseObjectMapper[Sequence]):
@@ -231,26 +233,19 @@ class SequenceCollection(generic._BaseCollection[Sequence]):
     For sequences outside of the 'public' schema, index becomes "schemaname.sequencename".
     """
 
-    def __init__(self, cluster: Cluster):
+    def __init__(self, cluster: Cluster, schema: str | None = None):
         super().__init__(cluster=cluster)
+        self.provider: MetadataProvider = cluster.metadata_provider
+        self._schema = schema
         if cluster:
             self.refresh()
 
     def refresh(self):
         """Resets any pending changes and refreshes the list of child objects from the cluster"""
         super().refresh()
-        sql = util.get_sql("get_sequence")
-        result = self.cluster.execute(sql)
-        for mapper in [_SequenceMapper(x) for x in result]:
-            self[self._index(name=mapper["name"], schema=mapper["schema"])] = mapper.map(
-                Sequence(
-                    cluster=self.cluster,
-                    name=mapper["name"],
-                    schema=mapper["schema"],
-                    parent=self,
-                    oid=mapper["oid"],
-                )
-            )
+        for data in self.provider.get_sequences(self._schema):
+            seq = _SequenceMapper.from_dict(Sequence, data, cluster=self.cluster, parent=self)
+            self[self._index(name=data["name"], schema=data["schema"])] = seq
 
     # TODO: uncomment when .create() and .new() are implemented
     # def add(self, sequence: Sequence):

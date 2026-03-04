@@ -10,6 +10,7 @@ from .mixins import NamedObjectMixin, OwnedObjectMixin
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
+    from ..providers.base import MetadataProvider
 
 
 class Schema(NamedObjectMixin, OwnedObjectMixin, generic._DynamicObject, generic._CollectionChild):
@@ -107,20 +108,24 @@ class _SchemaMapper(generic._BaseObjectMapper[Schema]):
 
 
 class SchemaCollection(generic._BaseCollection[Schema]):
-    """An iterable collection of schemas indexed by name."""
+    """An iterable collection of schemas indexed by name.
+
+    Attributes:
+        provider: Metadata provider used for all metadata operations
+    """
 
     def __init__(self, cluster: "Cluster"):
         super().__init__(cluster=cluster)
         if cluster:
+            self.provider: MetadataProvider = cluster.metadata_provider
             self.refresh()
 
     def refresh(self):
         """Resets any pending changes and retrieves child objects from the cluster"""
         super().refresh()
-        sql = util.get_sql("get_schema")
-        result = self.cluster.execute(sql)
-        for mapper in [_SchemaMapper(x) for x in result]:
-            self[mapper["name"]] = mapper.map(Schema(cluster=self.cluster, name=mapper["name"], parent=self))
+        for data in self.provider.get_schemas():
+            schema = _SchemaMapper.from_dict(Schema, data, cluster=self.cluster, parent=self)
+            self[data["name"]] = schema
 
     def new(
         self,

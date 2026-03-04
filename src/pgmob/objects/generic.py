@@ -67,6 +67,31 @@ class _BaseObjectMapper[T]:
 
         return obj
 
+    @classmethod
+    def from_dict(cls, obj_class: type[T], data: dict[str, Any], **kwargs: Any) -> T:
+        """Instantiate *obj_class* from a provider data dict and map all attributes.
+
+        Builds the definition tuple from *data* using the mapper's ``attributes``
+        list, then constructs an instance of *obj_class* using *kwargs* merged with
+        any of ``name``, ``schema``, and ``oid`` found in *data* (kwargs take
+        precedence). This means callers only need to pass extras not already in the
+        provider dict (e.g. ``cluster``, ``parent``).
+
+        Args:
+            obj_class: The class to instantiate.
+            data: Provider dict keyed by the mapper's attribute names.
+            **kwargs: Extra keyword arguments forwarded to *obj_class.__init__*.
+                      These take precedence over values extracted from *data*.
+
+        Returns:
+            A fully populated instance of *obj_class*.
+        """
+        _IDENTITY_KEYS = ("name", "schema", "oid")
+        identity = {k: data[k] for k in _IDENTITY_KEYS if k in data}
+        definition = tuple(data.get(attr) for attr in cls.attributes)
+        obj = obj_class(**{**identity, **kwargs})
+        return cls(definition).map(obj)
+
 
 class _ClusterBound:
     """Object that is attached to a Cluster. Implements cluster retrieval internal function"""

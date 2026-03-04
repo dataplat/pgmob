@@ -8,8 +8,8 @@
   },
   "then": {
     "type": "runCommand",
-    "command": "uv run pytest -vv",
-    "timeout": 30
+    "command": "uv run pytest ./src/tests/test_*.py -q && uv run ruff check src/ && uv run ty check src/",
+    "timeout": 120
   },
   "workspaceFolderName": "pgmob",
   "shortName": "test-after-task"

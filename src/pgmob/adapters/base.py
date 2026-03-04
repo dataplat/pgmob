@@ -1,8 +1,18 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any
+from contextlib import AbstractContextManager
+from typing import Any, Protocol, runtime_checkable
 
 from ..sql import Composable
+
+
+@runtime_checkable
+class BaseRow(Protocol):
+    """Protocol for named-tuple-style rows returned by a named cursor."""
+
+    def _asdict(self) -> dict:
+        """Return a dict representation of the row."""
+        ...
 
 
 class BaseCursor(ABC):
@@ -135,6 +145,28 @@ class BaseCursor(ABC):
         self.close()
 
 
+class BaseNamedCursor(BaseCursor):
+    """A cursor that returns named-tuple-style rows (implementing :class:`BaseRow`)."""
+
+    @abstractmethod
+    def fetchall(self) -> list[BaseRow]:
+        """Fetch all rows as named-tuple-style objects.
+
+        Returns:
+            list[BaseRow]: rows whose fields are accessible by name via ``_asdict()``.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def fetchone(self) -> BaseRow | None:
+        """Fetch one row as a named-tuple-style object.
+
+        Returns:
+            BaseRow | None: a single named row, or ``None`` when no more rows are available.
+        """
+        raise NotImplementedError()
+
+
 class BaseLargeObject(ABC):
     """Base Large Object adapter. Abstract class that defines the necessary methods to be overridden by
     the child class that implements Large Object interactions specific to the chosen module.
@@ -247,6 +279,18 @@ class BaseAdapter(ABC):
     @abstractmethod
     def set_autocommit(self, state: bool) -> None:
         """Set autocommit status"""
+        raise NotImplementedError()
+
+    @abstractmethod
+    def named_cursor(self) -> AbstractContextManager["BaseNamedCursor"]:
+        """Return a context manager that yields a :class:`BaseNamedCursor`.
+
+        Usage::
+
+            with adapter.named_cursor() as cur:
+                cur.execute(query)
+                rows = cur.fetchall()
+        """
         raise NotImplementedError()
 
     # shared methods

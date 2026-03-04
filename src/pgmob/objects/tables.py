@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .. import util
 from ..errors import PostgresError
 from ..sql import SQL, Identifier
 from . import generic
@@ -12,6 +11,7 @@ from .mixins import NamedObjectMixin, OwnedObjectMixin, SchemaObjectMixin, Table
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
+    from ..providers.base import MetadataProvider
 
 
 class Table(
@@ -79,12 +79,15 @@ class Table(
         """Re-initializes the object, refreshing its properties from Postgres cluster"""
         super().refresh()
         if not self._ephemeral:
-            sql = util.get_sql("get_table") + SQL(" WHERE c.oid = %s")
-            result = self.cluster.execute(sql, (self.oid,))
-            if not result:
+            if self.oid is None:
+                raise PostgresError("Table has no OID; cannot refresh")
+            data = self.cluster.metadata_provider.get_table(self.oid)
+            if not data:
                 raise PostgresError("Table with oid %s was not found", self.oid)
-            mapper = _TableMapper(result[0])
+            mapper = _TableMapper(tuple(data.get(attr) for attr in _TableMapper.attributes))
             mapper.map(self)
+            self._fqn.name = self._name
+            self._fqn.schema = self._schema
 
     @property
     def tablespace(self):
@@ -136,21 +139,27 @@ class TableCollection(generic._BaseCollection[Table]):
 
     def __init__(self, cluster: Cluster):
         super().__init__(cluster=cluster)
+        self.provider: MetadataProvider = cluster.metadata_provider
         if cluster:
             self.refresh()
 
     def refresh(self):
         """Resets any pending changes and refreshes the list of child objects from the cluster"""
         super().refresh()
-        sql = util.get_sql("get_table")
-        result = self.cluster.execute(sql)
-        for mapper in [_TableMapper(x) for x in result]:
-            self[self._index(name=mapper["name"], schema=mapper["schema"])] = mapper.map(
-                Table(
-                    cluster=self.cluster,
-                    name=mapper["name"],
-                    schema=mapper["schema"],
-                    parent=self,
-                    oid=mapper["oid"],
-                )
-            )
+        for data in self.provider.get_tables():
+            table = _TableMapper.from_dict(Table, data, cluster=self.cluster, parent=self)
+            self[self._index(name=data["name"], schema=data["schema"])] = table
+
+    def get_by_oid(self, oid: int) -> Table | None:
+        """Retrieve a table by its OID using the metadata provider.
+
+        Args:
+            oid: The table's object identifier.
+
+        Returns:
+            Table object if found, None otherwise.
+        """
+        data = self.provider.get_table(oid)
+        if not data:
+            return None
+        return _TableMapper.from_dict(Table, data, cluster=self.cluster, parent=self)

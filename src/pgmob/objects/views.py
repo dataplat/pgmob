@@ -12,6 +12,7 @@ from .mixins import NamedObjectMixin, OwnedObjectMixin, SchemaObjectMixin
 
 if TYPE_CHECKING:
     from ..cluster import Cluster
+    from ..providers.base import MetadataProvider
 
 
 class View(
@@ -96,23 +97,16 @@ class ViewCollection(generic._BaseCollection[View]):
     For views outside of the 'public' schema, index becomes "schemaname.tablename".
     """
 
-    def __init__(self, cluster: Cluster):
+    def __init__(self, cluster: Cluster, schema: str | None = None):
         super().__init__(cluster=cluster)
+        self.provider: MetadataProvider = cluster.metadata_provider
+        self._schema = schema
         if cluster:
             self.refresh()
 
     def refresh(self):
         """Resets any pending changes and refreshes the list of child objects from the cluster"""
         super().refresh()
-        sql = util.get_sql("get_view")
-        result = self.cluster.execute(sql)
-        for mapper in [_ViewMapper(x) for x in result]:
-            self[self._index(name=mapper["name"], schema=mapper["schema"])] = mapper.map(
-                View(
-                    cluster=self.cluster,
-                    name=mapper["name"],
-                    schema=mapper["schema"],
-                    parent=self,
-                    oid=mapper["oid"],
-                )
-            )
+        for data in self.provider.get_views(self._schema):
+            view = _ViewMapper.from_dict(View, data, cluster=self.cluster, parent=self)
+            self[self._index(name=data["name"], schema=data["schema"])] = view

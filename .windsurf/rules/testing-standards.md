@@ -45,6 +45,13 @@ The project supports both `psycopg2` and `psycopg2-binary` as optional dependenc
 - **psycopg2-binary**: Pre-compiled binary package, easier to install, recommended for development
 - **psycopg2**: Source package requiring PostgreSQL development libraries, recommended for production
 
+## Creating new tests
+
+- Follow the folder structure, and consider placing tests into existing files before creating new ones.
+- When creating a new test, always run it first. In TDD flow, the tests should fail first, and be fixed later.
+- When creating a new functional test, always run the whole test class/file, as it can impact other tests.
+- Re-use fixtures when necessary and make new fixtures shared instead of duplicating them in each file.
+
 ## Running Tests
 
 After installing dependencies:
@@ -54,10 +61,10 @@ After installing dependencies:
 uv run pytest -vv
 
 # Run unit tests only
-uv run pytest -m unit -vv
+uv run pytest ./src/tests/test_*.py -vv
 
 # Run functional tests only (requires Docker, will start container automatically)
-uv run pytest -m integration -vv
+uv run pytest ./src/tests/functional/test_*.py -vv
 ```
 
 ## Type Checking

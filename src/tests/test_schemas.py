@@ -23,8 +23,8 @@ def schema(cluster, schema_tuples):
     data = schema_tuples[0]
     obj = objects.Schema(
         cluster=cluster,
-        name=data.nspname,
-        owner=data.nspowner,
+        name=data.name,
+        owner=data.owner,
         oid=data.oid,
     )
     return obj
@@ -33,10 +33,10 @@ def schema(cluster, schema_tuples):
 class TestSchemas:
     def test_init(self, schema_tuples, schema: objects.Schema):
         schema_data = schema_tuples[0]
-        assert schema.name == schema_data.nspname
-        assert schema.owner == schema_data.nspowner
+        assert schema.name == schema_data.name
+        assert schema.owner == schema_data.owner
         assert schema.oid == schema_data.oid
-        assert str(schema) == f"Schema('{schema_data.nspname}')"
+        assert str(schema) == f"Schema('{schema_data.name}')"
 
     def test_drop(self, schema: objects.Schema, cursor, pgmob_tester):
         schema.drop()
@@ -51,8 +51,8 @@ class TestSchemas:
         tpl = schema_tuples[0]
         schema.owner = "foo"
         schema.refresh()
-        assert schema.name == tpl.nspname
-        assert schema.owner == tpl.nspowner
+        assert schema.name == tpl.name
+        assert schema.owner == tpl.owner
         assert schema.oid == tpl.oid
 
     def test_alter(self, schema: objects.Schema, schema_cursor, pgmob_tester):
@@ -78,17 +78,17 @@ class TestSchemaCollection:
         for result in schema_collection:
             assert isinstance(result, objects.Schema)
         for schema_data in schema_tuples:
-            result = schema_collection[schema_data.nspname]
-            assert result.name == schema_data.nspname
-            assert result.owner == schema_data.nspowner
+            result = schema_collection[schema_data.name]
+            assert result.name == schema_data.name
+            assert result.owner == schema_data.owner
             assert result.oid == schema_data.oid
-            assert str(result) == f"Schema('{schema_data.nspname}')"
+            assert str(result) == f"Schema('{schema_data.name}')"
 
     def test_refresh(self, schema_collection: objects.SchemaCollection, schema_tuples):
-        schema_collection[schema_tuples[0].nspname].name = "foo"
+        schema_collection[schema_tuples[0].name].name = "foo"
         schema_collection.refresh()
-        assert schema_collection[schema_tuples[0].nspname].name == schema_tuples[0].nspname
-        assert len(schema_collection[schema_tuples[0].nspname]._changes) == 0
+        assert schema_collection[schema_tuples[0].name].name == schema_tuples[0].name
+        assert len(schema_collection[schema_tuples[0].name]._changes) == 0
 
     def test_new(self, schema_collection: objects.SchemaCollection):
         result = schema_collection.new(name="foo", owner="bar")

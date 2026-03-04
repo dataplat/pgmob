@@ -19,6 +19,7 @@ from .adapters import AdapterError, NoResultsToFetch, detect_adapter
 from .adapters.base import BaseAdapter, BaseCursor
 from .errors import PostgresError
 from .os import OSCommandResult, ShellEnv, _BaseShellEnv
+from .providers import MetadataProvider, SQLMetadataProvider
 from .sql import SQL, Composable, Identifier, Literal
 
 LOGGER = logging.getLogger(__name__)
@@ -41,26 +42,47 @@ class _NoAutocommitContextManager:
 
 
 class Cluster:
-    """Provides a management interface for postgres cluster configuration.
+    """Provides a management interface for a PostgreSQL cluster.
+
+    ``Cluster`` is the central entry point for all pgmob operations.  On
+    construction it opens a connection to PostgreSQL and validates the server
+    version (minimum 10.0).
 
     Args:
-        connection(Any): a connection object. Overrides other connectivity args.
-        become(str): become this role after connecting. Executes SET ROLE <rolename>
-        adapter(adapters.BaseAdapter): Postgres connectivity Adapter object. Defines which underlying driver
-            to be used for database communications.
-        *args: underlying adapter connection parameters
-        **kwargs: underlying adapter connection parameters
+        connection: An existing connection object (e.g. a ``psycopg2``
+            connection).  When provided, all other connectivity keyword
+            arguments are ignored.
+        become: Role name to assume after connecting.  Executes
+            ``SET ROLE <rolename>`` immediately after the connection is
+            established.
+        adapter: A :class:`~pgmob.adapters.base.BaseAdapter` instance.
+            When *None* the appropriate adapter is detected automatically.
+        shell: A shell environment object used for OS-level commands.
+            Defaults to :class:`~pgmob.shell.ShellEnv`.
+        metadata_provider: A custom :class:`~pgmob.providers.base.MetadataProvider`
+            implementation.  When *None* (the default) a
+            :class:`~pgmob.providers.sql.SQLMetadataProvider` is created
+            automatically.
+        *args: Positional arguments forwarded to the adapter's ``connect()``
+            method.
+        **kwargs: Keyword arguments forwarded to the adapter's ``connect()``
+            method (e.g. ``host``, ``port``, ``user``, ``password``,
+            ``dbname``).
 
     Attributes:
-        become(str): become this role after connecting. Executes SET ROLE <rolename>
-        current_database(str): Database name, to which the connection is currently established
-        adapter(BaseAdapter): Postgres connectivity Adapter object. Defines which underlying driver
-            to be used for database communications.
+        become (str | None): Role name assumed after connecting.
+        current_database (str): Name of the database the connection is
+            currently established to.
+        adapter (BaseAdapter): Active connectivity adapter.
+        version (Version): PostgreSQL server version detected at connection
+            time.
 
+    Raises:
+        PostgresError: If the connection cannot be validated, the server
+            version is below 10.0, or the DBMS is not PostgreSQL.
 
     Examples:
-        To connect to the PostgreSQL server use the same arguments as you would when using an
-        underlying adapter, such as `psycopg2`_:
+        Connect using keyword arguments (same as the underlying adapter):
 
         >>> cluster = Cluster(host="127.0.0.1", user="postgres", password="s3cur3p@ss")  # doctest: +SKIP
 
@@ -80,6 +102,7 @@ class Cluster:
         become=None,
         adapter: BaseAdapter | None = None,
         shell: _BaseShellEnv | None = None,
+        metadata_provider: MetadataProvider | None = None,
         *args,
         **kwargs,
     ):
@@ -91,9 +114,14 @@ class Cluster:
         else:
             self.adapter.connect(*args, **kwargs)
         self._acquire_connection()
+        # Initialize metadata provider after _acquire_connection so self.version is available
+        if metadata_provider is not None:
+            self.metadata_provider = metadata_provider
+        else:
+            self.metadata_provider = SQLMetadataProvider(cluster=self, version=self.version)
 
     def __del__(self):
-        if self.adapter.is_connected:
+        if getattr(self, "adapter", None) is not None and self.adapter.is_connected:
             self.adapter.close_connection()
 
     def _initialize(self):
@@ -180,15 +208,15 @@ class Cluster:
         for attr in [attr for attr in lazy_attributes if attr.startswith(LAZY_PREFIX)]:
             setattr(self, attr, RefreshProperty())
 
-    def execute(self, query: Composable | str, params: tuple[Any] | Any = None) -> list[tuple[Any]]:
+    def execute(self, query: Composable | str, params: tuple[Any, ...] | Any = None) -> list[tuple[Any, ...]]:
         r"""Execute a query against Postgres server. Transaction would be automatically committed upon completion.
 
         Args:
             query (Composable | str): Query text or a Composable object
-            params (tuple[Any] | Any): Tuple of parameter values (or a single value) to replace parameters in the query
+            params (tuple[Any, ...] | Any): Tuple of parameter values (or a single value) to replace parameters in the query
 
         Returns:
-            list[tuple[Any]]: List of tuples returned from the server, or empty list if no rows were selected.
+            list[tuple[Any, ...]]: List of tuples returned from the server, or empty list if no rows were selected.
 
         Raises:
             AdapterError: Whenever the adapter returns an error.
@@ -215,7 +243,7 @@ class Cluster:
 
         LOGGER.debug("Executing query: %s", query)
 
-        def execute_task(cursor: BaseCursor) -> list[tuple[Any]] | None:
+        def execute_task(cursor: BaseCursor) -> list[tuple[Any, ...]] | None:
             param_set = (params if isinstance(params, tuple) else (params,)) if params else None
             cursor.execute(query, param_set)
             if cursor.statusmessage:
@@ -385,7 +413,9 @@ class Cluster:
 
     @property
     def roles(self) -> objects.RoleCollection:
-        """Postgres role objects
+        """PostgreSQL role objects.
+
+        Lazily initialised on first access; call :meth:`refresh` to reload.
 
         Example:
             Create a new role:
@@ -409,7 +439,9 @@ class Cluster:
 
     @property
     def databases(self) -> objects.DatabaseCollection:
-        """Postgres database objects
+        """PostgreSQL database objects.
+
+        Lazily initialised on first access; call :meth:`refresh` to reload.
 
         Example:
             Reassign database ownership:
@@ -425,7 +457,9 @@ class Cluster:
 
     @property
     def sequences(self) -> objects.SequenceCollection:
-        """Postgres sequence objects
+        """PostgreSQL sequence objects.
+
+        Lazily initialised on first access; call :meth:`refresh` to reload.
 
         Example:
             Retrieving sequences from the server
@@ -441,7 +475,11 @@ class Cluster:
 
     @property
     def tables(self) -> objects.TableCollection:
-        """Postgres table objects
+        """PostgreSQL table objects.
+
+        Lazily initialised on first access; call :meth:`refresh` to reload.
+        Individual tables can also be retrieved by OID via
+        :meth:`~pgmob.objects.tables.TableCollection.get_by_oid`.
 
         Example:
             Retrieving tables from the server after refreshing table objects
@@ -483,7 +521,9 @@ class Cluster:
 
     @property
     def procedures(self) -> objects.ProcedureCollection:
-        """Postgres procedures, functions, aggregates and window functions
+        """PostgreSQL procedures, functions, aggregates and window functions.
+
+        Lazily initialised on first access; call :meth:`refresh` to reload.
 
         Example:
             Retrieving procedures from the server
@@ -499,7 +539,9 @@ class Cluster:
 
     @property
     def views(self) -> objects.ViewCollection:
-        """Postgres views
+        """PostgreSQL view objects.
+
+        Lazily initialised on first access; call :meth:`refresh` to reload.
 
         Example:
             Retrieving views from the server
@@ -515,7 +557,9 @@ class Cluster:
 
     @property
     def schemas(self) -> objects.SchemaCollection:
-        """Postgres schema objects
+        """PostgreSQL schema objects.
+
+        Lazily initialised on first access; call :meth:`refresh` to reload.
 
         Example:
             Migrate tables from one schema to another

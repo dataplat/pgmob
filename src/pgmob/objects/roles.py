@@ -292,20 +292,35 @@ class RoleCollection(generic._BaseCollection[Role]):
 
     Attributes:
         cluster (str): Postgres cluster object
+        provider: Metadata provider used for all metadata operations
     """
 
     def __init__(self, cluster):
         super().__init__(cluster=cluster)
         if cluster:
+            self.provider = cluster.metadata_provider
             self.refresh()
 
     def refresh(self):
         """Resets any pending changes and retrieves objects from the cluster"""
         super().refresh()
-        sql = util.get_sql("get_role") + SQL(" ORDER BY rolname")
-        result = self.cluster.execute(sql)
-        for mapper in [_RoleMapper(x) for x in result]:
-            self[mapper["name"]] = mapper.map(Role(cluster=self.cluster, name=mapper["name"], parent=self))
+        for data in self.provider.get_roles():
+            role = _RoleMapper.from_dict(Role, data, cluster=self.cluster, parent=self)
+            self[data["name"]] = role
+
+    def get_by_name(self, name: str) -> "Role | None":
+        """Retrieve a single role by name using the metadata provider.
+
+        Args:
+            name: The role name to look up.
+
+        Returns:
+            Role object if found, None otherwise.
+        """
+        data = self.provider.get_role(name)
+        if not data:
+            return None
+        return _RoleMapper.from_dict(Role, data, cluster=self.cluster, parent=self)
 
     def new(
         self,

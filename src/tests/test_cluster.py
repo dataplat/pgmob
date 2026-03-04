@@ -135,7 +135,7 @@ class TestCluster:
         pgmob_tester.assertSql("SELECT pid, pg_terminate_backend(pid) FROM pg_stat_activity WHERE", cursor)
 
     def test_drop_database(self, cluster: Cluster, cursor, db_tuples, pgmob_tester):
-        database = db_tuples[0].datname
+        database = db_tuples[0].name
         cursor.fetchall.side_effect = (db_tuples, [(True,)])
         cluster.databases[database].drop()
         pgmob_tester.assertSql("DROP DATABASE", cursor)
@@ -161,7 +161,7 @@ class TestCluster:
         pgmob_tester.assertSql("NOLOGIN", cursor)
 
     def test_drop_role(self, cluster: Cluster, cursor, role_tuples, pgmob_tester):
-        role = role_tuples[0].rolname
+        role = role_tuples[0].name
         cursor.fetchall.return_value = role_tuples
         cluster.roles[role].drop()
         pgmob_tester.assertSql("DROP ROLE", cursor)
@@ -279,9 +279,9 @@ class TestCluster:
             for procitem in variation:
                 assert procitem.__class__ in [objects.Procedure, objects.Function]
         for proc in cursor_fetch_procedures:
-            key = proc.proname if proc.schemaname == "public" else f"{proc.schemaname}.{proc.proname}"
+            key = proc.name if proc.schema == "public" else f"{proc.schema}.{proc.name}"
             result = results[key][0]
-            assert result.name == proc.proname
+            assert result.name == proc.name
 
     def test_hba_rules(self, cluster: Cluster, cursor_fetch_hba):
         results = cluster.hba_rules
@@ -307,17 +307,92 @@ class TestCluster:
 
     def test_reassign_owner_objects(self, mocker: MockerFixture, cluster, cursor, cursor_fetch_roles):
         obj_collection = self._get_collection(mocker, ["foo", "bar"])
-        cluster.reassign_owner(new_owner=cursor_fetch_roles[0].rolname, objects=obj_collection)
+        cluster.reassign_owner(new_owner=cursor_fetch_roles[0].name, objects=obj_collection)
         cursor.execute.assert_called_with(
             SQL(";\n").join([SQL("foobar")] * 2),
             None,
         )
 
     def test_reassign_owner_reassign(self, mocker: MockerFixture, cluster, cursor, cursor_fetch_roles):
-        cluster.reassign_owner(new_owner=cursor_fetch_roles[1].rolname, owner=cursor_fetch_roles[0].rolname)
+        cluster.reassign_owner(new_owner=cursor_fetch_roles[1].name, owner=cursor_fetch_roles[0].name)
         cursor.execute.assert_called_with(
             SQL("REASSIGN OWNED BY {old} TO {new}").format(
-                old=Identifier(cursor_fetch_roles[0].rolname), new=Identifier(cursor_fetch_roles[1].rolname)
+                old=Identifier(cursor_fetch_roles[0].name), new=Identifier(cursor_fetch_roles[1].name)
             ),
             None,
         )
+
+
+class TestClusterMetadataProvider:
+    """Tests for metadata_provider parameter on Cluster.__init__()"""
+
+    def test_default_provider_initialization(self, cluster: Cluster):
+        """Test that a SQLMetadataProvider is created by default"""
+        from pgmob.providers import SQLMetadataProvider
+
+        assert hasattr(cluster, "metadata_provider")
+        assert isinstance(cluster.metadata_provider, SQLMetadataProvider)
+
+    def test_default_provider_receives_correct_cluster(self, cluster: Cluster):
+        """Test that the default provider is initialized with the cluster instance"""
+        assert cluster.metadata_provider.cluster is cluster
+
+    def test_default_provider_receives_correct_version(self, cluster: Cluster):
+        """Test that the default provider is initialized with the cluster version"""
+        from pgmob.providers.sql import SQLMetadataProvider
+
+        assert isinstance(cluster.metadata_provider, SQLMetadataProvider)
+        assert cluster.metadata_provider.version == cluster.version
+
+    def test_custom_provider_injection(
+        self,
+        psycopg2_connection,
+        cursor,
+        cursor_fetch_version,
+        mocker: MockerFixture,
+    ):
+        """Test that a custom provider is used when injected"""
+        from pgmob.providers import MetadataProvider
+
+        custom_provider = mocker.Mock(spec=MetadataProvider)
+        mocker.patch("pgmob.adapters.psycopg2.Psycopg2Cursor._convert_query", lambda _, x: x)
+        cluster = Cluster(connection=psycopg2_connection, metadata_provider=custom_provider)
+
+        assert cluster.metadata_provider is custom_provider
+
+    def test_custom_provider_not_replaced(
+        self,
+        psycopg2_connection,
+        cursor,
+        cursor_fetch_version,
+        mocker: MockerFixture,
+    ):
+        """Test that a custom provider is not replaced with a default SQLMetadataProvider"""
+        from pgmob.providers import MetadataProvider, SQLMetadataProvider
+
+        custom_provider = mocker.Mock(spec=MetadataProvider)
+        mocker.patch("pgmob.adapters.psycopg2.Psycopg2Cursor._convert_query", lambda _, x: x)
+        cluster = Cluster(connection=psycopg2_connection, metadata_provider=custom_provider)
+
+        assert not isinstance(cluster.metadata_provider, SQLMetadataProvider)
+
+    def test_mock_provider_usable_by_collections(
+        self,
+        psycopg2_connection,
+        cursor,
+        cursor_fetch_version,
+        mocker: MockerFixture,
+    ):
+        """Test that a mock provider can be injected and used by collections"""
+        from pgmob.providers import MetadataProvider
+
+        mock_provider = mocker.Mock(spec=MetadataProvider)
+        mock_provider.get_tables.return_value = []
+        mocker.patch("pgmob.adapters.psycopg2.Psycopg2Cursor._convert_query", lambda _, x: x)
+        cluster = Cluster(connection=psycopg2_connection, metadata_provider=mock_provider)
+
+        assert cluster.metadata_provider is mock_provider
+        # Verify the mock is accessible and callable
+        result = cluster.metadata_provider.get_tables()
+        assert result == []
+        mock_provider.get_tables.assert_called_once()

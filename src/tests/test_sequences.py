@@ -5,6 +5,51 @@ import pytest
 from pgmob import objects
 from pgmob.sql import SQL, Identifier
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _sequence_tuples_to_dicts(sequence_tuples):
+    """Convert sequence namedtuples to provider-style dicts."""
+    return [
+        {
+            "name": s.name,
+            "owner": s.owner,
+            "schema": s.schema,
+            "data_type": s.data_type,
+            "start_value": s.start_value,
+            "min_value": s.min_value,
+            "max_value": s.max_value,
+            "increment_by": s.increment_by,
+            "cycle": s.cycle,
+            "cache_size": s.cache_size,
+            "last_value": s.last_value,
+            "oid": s.oid,
+        }
+        for s in sequence_tuples
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def mock_provider(mocker, sequence_tuples):
+    """Mock metadata provider that returns sequence_tuples data."""
+    provider = mocker.Mock()
+    provider.get_sequences.return_value = _sequence_tuples_to_dicts(sequence_tuples)
+    return provider
+
+
+@pytest.fixture
+def cluster_with_mock_provider(cluster, mock_provider):
+    """Cluster with metadata_provider replaced by a mock."""
+    cluster.metadata_provider = mock_provider
+    return cluster
+
 
 @pytest.fixture
 def sequence_cursor(cursor, sequence_tuples):
@@ -14,9 +59,9 @@ def sequence_cursor(cursor, sequence_tuples):
 
 
 @pytest.fixture
-def sequence_collection(cluster, sequence_cursor):
-    """Returns an initialized SequenceCollection object"""
-    collection = objects.SequenceCollection(cluster=cluster)
+def sequence_collection(cluster_with_mock_provider):
+    """Returns an initialized SequenceCollection object using the mock provider."""
+    collection = objects.SequenceCollection(cluster=cluster_with_mock_provider)
     return collection
 
 
@@ -26,24 +71,29 @@ def sequence(cluster, sequence_tuples):
     data = sequence_tuples[0]
     return objects.Sequence(
         cluster=cluster,
-        name=data.sequencename,
-        owner=data.sequenceowner,
-        schema=data.schemaname,
+        name=data.name,
+        owner=data.owner,
+        schema=data.schema,
         oid=data.oid,
     )
 
 
 def _get_key(seq):
-    return seq.sequencename if seq.schemaname == "public" else f"{seq.schemaname}.{seq.sequencename}"
+    return seq.name if seq.schema == "public" else f"{seq.schema}.{seq.name}"
+
+
+# ---------------------------------------------------------------------------
+# TestSequence
+# ---------------------------------------------------------------------------
 
 
 class TestSequence:
     def test_init(self, sequence, sequence_tuples):
         seq = sequence_tuples[0]
         key = _get_key(seq)
-        assert sequence.name == seq.sequencename
-        assert sequence.owner == seq.sequenceowner
-        assert sequence.schema == seq.schemaname
+        assert sequence.name == seq.name
+        assert sequence.owner == seq.owner
+        assert sequence.schema == seq.schema
         assert sequence.data_type == None
         assert sequence.start_value == None
         assert sequence.min_value == None
@@ -87,18 +137,18 @@ class TestSequence:
         seq = sequence_tuples[0]
         sequence.schema = "foo"
         sequence.refresh()
-        assert sequence.name == seq[0]
-        assert sequence.owner == seq[1]
-        assert sequence.schema == seq[2]
-        assert sequence.data_type == seq[3]
-        assert sequence.start_value == seq[4]
-        assert sequence.min_value == seq[5]
-        assert sequence.max_value == seq[6]
-        assert sequence.increment_by == seq[7]
-        assert sequence.cycle == seq[8]
-        assert sequence.cache_size == seq[9]
-        assert sequence.last_value == seq[10]
-        assert sequence.oid == seq[11]
+        assert sequence.name == seq.name
+        assert sequence.owner == seq.owner
+        assert sequence.schema == seq.schema
+        assert sequence.data_type == seq.data_type
+        assert sequence.start_value == seq.start_value
+        assert sequence.min_value == seq.min_value
+        assert sequence.max_value == seq.max_value
+        assert sequence.increment_by == seq.increment_by
+        assert sequence.cycle == seq.cycle
+        assert sequence.cache_size == seq.cache_size
+        assert sequence.last_value == seq.last_value
+        assert sequence.oid == seq.oid
         assert str(sequence) == f"Sequence('{_get_key(seq)}')"
         pgmob_tester.assertSql("FROM pg_catalog.pg_sequences", sequence_cursor)
 
@@ -137,29 +187,75 @@ class TestSequence:
 
 
 class TestSequenceCollection:
-    def test_init(self, sequence_collection, sequence_tuples):
+    def test_init_populates_collection(self, sequence_collection, sequence_tuples):
+        """refresh() populates collection with Sequence objects from provider data."""
         for result in sequence_collection:
             assert isinstance(result, objects.Sequence)
+
+    def test_init_all_sequences_present(self, sequence_tuples, sequence_collection):
+        """All sequences from provider are present in the collection."""
+        for seq in sequence_tuples:
+            key = _get_key(seq)
+            assert key in sequence_collection
+
+    def test_collection_indexing(self, sequence_tuples, sequence_collection):
+        """Collection uses schema.name for non-public schemas, name for public."""
         for seq in sequence_tuples:
             key = _get_key(seq)
             result = sequence_collection[key]
-            assert result.name == seq[0]
-            assert result.owner == seq[1]
-            assert result.schema == seq[2]
-            assert result.data_type == seq[3]
-            assert result.start_value == seq[4]
-            assert result.min_value == seq[5]
-            assert result.max_value == seq[6]
-            assert result.increment_by == seq[7]
-            assert result.cycle == seq[8]
-            assert result.cache_size == seq[9]
-            assert result.last_value == seq[10]
-            assert result.oid == seq[11]
+            assert result.name == seq.name
+            assert result.schema == seq.schema
+
+    def test_metadata_mapping(self, sequence_tuples, sequence_collection):
+        """All metadata fields are correctly mapped to Sequence objects."""
+        for seq in sequence_tuples:
+            key = _get_key(seq)
+            result = sequence_collection[key]
+            assert result.name == seq.name
+            assert result.owner == seq.owner
+            assert result.schema == seq.schema
+            assert result.data_type == seq.data_type
+            assert result.start_value == seq.start_value
+            assert result.min_value == seq.min_value
+            assert result.max_value == seq.max_value
+            assert result.increment_by == seq.increment_by
+            assert result.cycle == seq.cycle
+            assert result.cache_size == seq.cache_size
+            assert result.last_value == seq.last_value
+            assert result.oid == seq.oid
             assert str(result) == f"Sequence('{key}')"
 
-    def test_refresh(self, sequence_collection: objects.SequenceCollection, sequence_tuples):
+    def test_refresh_repopulates_collection(self, sequence_collection, sequence_tuples, mock_provider):
+        """refresh() clears and repopulates the collection."""
         key = _get_key(sequence_tuples[0])
         sequence_collection[key].name = "foo"
         sequence_collection.refresh()
-        assert sequence_collection[key].name == sequence_tuples[0].sequencename
+        assert sequence_collection[key].name == sequence_tuples[0].name
         assert len(sequence_collection[key]._changes) == 0
+
+    def test_refresh_calls_provider(self, sequence_collection, mock_provider):
+        """refresh() calls provider.get_sequences() each time."""
+        call_count_before = mock_provider.get_sequences.call_count
+        sequence_collection.refresh()
+        assert mock_provider.get_sequences.call_count == call_count_before + 1
+
+    def test_empty_results(self, cluster_with_mock_provider, mock_provider):
+        """Empty provider results produce an empty collection."""
+        mock_provider.get_sequences.return_value = []
+        collection = objects.SequenceCollection(cluster=cluster_with_mock_provider)
+        assert len(collection) == 0
+
+    def test_schema_filtering(self, cluster_with_mock_provider, mock_provider, sequence_tuples):
+        """Schema filter is passed through to provider.get_sequences()."""
+        schema = "public"
+        filtered = [s for s in _sequence_tuples_to_dicts(sequence_tuples) if s["schema"] == schema]
+        mock_provider.get_sequences.return_value = filtered
+        collection = objects.SequenceCollection(cluster=cluster_with_mock_provider, schema=schema)
+        mock_provider.get_sequences.assert_called_with(schema)
+        for result in collection:
+            assert result.schema == schema
+
+    def test_provider_attribute_set(self, cluster_with_mock_provider, mock_provider):
+        """SequenceCollection stores the provider from cluster.metadata_provider."""
+        collection = objects.SequenceCollection(cluster=cluster_with_mock_provider)
+        assert collection.provider is mock_provider

@@ -262,22 +262,24 @@ class _DatabaseMapper(generic._BaseObjectMapper[Database]):
 
 
 class DatabaseCollection(generic._BaseCollection[Database]):
-    """An iterable collection of databases indexed by database name."""
+    """An iterable collection of databases indexed by database name.
+
+    Attributes:
+        provider: Metadata provider used for all metadata operations
+    """
 
     def __init__(self, cluster: Cluster):
         super().__init__(cluster=cluster)
         if cluster:
+            self.provider = cluster.metadata_provider
             self.refresh()
 
     def refresh(self):
         """Resets any pending changes and retrieves child objects from the cluster"""
         super().refresh()
-        sql = util.get_sql("get_database")
-        result = self.cluster.execute(sql)
-        for mapper in [_DatabaseMapper(x) for x in result]:
-            self[mapper["name"]] = mapper.map(
-                Database(cluster=self.cluster, name=mapper["name"], parent=self, oid=mapper["oid"])
-            )
+        for data in self.provider.get_databases():
+            db = _DatabaseMapper.from_dict(Database, data, cluster=self.cluster, parent=self)
+            self[data["name"]] = db
 
     def new(
         self,

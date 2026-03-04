@@ -1,4 +1,5 @@
 import os
+import shlex
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -123,7 +124,7 @@ def test_db(psql, container):
         assert container.exec_run(f"dropdb -U postgres --if-exists {db}").exit_code == 0
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def psql(container):
     """Callable that runs a command locally in postgresql container using psql binary.
 
@@ -139,7 +140,11 @@ def psql(container):
 
     def wrapper(cmd, db="postgres"):
         result = container.exec_run(
-            ["sh", "-c", f'psql -twA -v "ON_ERROR_STOP=1" -U postgres -d "{db}" << EOM\n{cmd}\nEOM\n']
+            [
+                "sh",
+                "-c",
+                f'psql -twA -v "ON_ERROR_STOP=1" -U postgres -d {shlex.quote(db)} -c {shlex.quote(cmd)}',
+            ]
         )
         return ExecRunOutput(output=result.output.decode("utf8").strip(), exit_code=result.exit_code)
 
@@ -217,7 +222,7 @@ def tablespace(psql, container):
     assert psql(f"DROP TABLESPACE {tablespace}").exit_code == 0
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def connect(container, hostname, pg_password):
     """Cluster object factory.
 
